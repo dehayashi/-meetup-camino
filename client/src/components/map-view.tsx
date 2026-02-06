@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import type { Activity } from "@shared/schema";
+import { useT } from "@/lib/i18n";
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -17,11 +18,11 @@ const typeColors: Record<string, string> = {
   lodging: "#A855F7",
 };
 
-const typeLabels: Record<string, string> = {
-  transport: "Transporte",
-  meal: "Refei\u00e7\u00e3o",
-  hike: "Passeio",
-  lodging: "Hospedagem",
+const typeKeys: Record<string, string> = {
+  transport: "type_transport",
+  meal: "type_meal",
+  hike: "type_hike",
+  lodging: "type_lodging",
 };
 
 function createColoredIcon(color: string) {
@@ -43,6 +44,7 @@ interface MapViewProps {
 export function MapView({ activities, onActivityClick, className = "" }: MapViewProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const { t } = useT();
 
   useEffect(() => {
     if (!mapRef.current || mapInstanceRef.current) return;
@@ -79,16 +81,21 @@ export function MapView({ activities, onActivityClick, className = "" }: MapView
     activities.forEach((act) => {
       if (act.lat && act.lng) {
         const color = typeColors[act.type] || "#3B82F6";
-        const label = typeLabels[act.type] || act.type;
+        const label = t(typeKeys[act.type] || "type_hike");
         const spotsLeft = (act.spots || 4) - (act.participantCount || 0);
+        const spotsText = spotsLeft <= 0
+          ? t("spots_full")
+          : spotsLeft === 1
+            ? t("spots_one", { count: 1 })
+            : t("spots_other", { count: spotsLeft });
         const marker = L.marker([act.lat, act.lng], { icon: createColoredIcon(color) })
           .addTo(map)
           .bindPopup(
             `<div style="min-width:180px;font-family:Inter,sans-serif;">
               <div style="font-weight:600;font-size:14px;margin-bottom:4px;">${act.title}</div>
               <div style="font-size:12px;color:#666;margin-bottom:2px;">${label} &middot; ${act.city}</div>
-              <div style="font-size:12px;color:#666;">${act.date}${act.time ? " \u00e0s " + act.time : ""}</div>
-              <div style="font-size:11px;margin-top:4px;color:${spotsLeft <= 1 ? "#ef4444" : "#666"}">${spotsLeft} vaga${spotsLeft !== 1 ? "s" : ""}</div>
+              <div style="font-size:12px;color:#666;">${act.date}${act.time ? ` ${t("map_at")} ${act.time}` : ""}</div>
+              <div style="font-size:11px;margin-top:4px;color:${spotsLeft <= 1 ? "#ef4444" : "#666"}">${spotsText}</div>
             </div>`
           );
 
@@ -103,7 +110,7 @@ export function MapView({ activities, onActivityClick, className = "" }: MapView
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50], maxZoom: 12 });
     }
-  }, [activities, onActivityClick]);
+  }, [activities, onActivityClick, t]);
 
   return <div ref={mapRef} className={`w-full h-full ${className}`} data-testid="map-container" />;
 }

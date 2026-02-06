@@ -1,0 +1,123 @@
+Aqui vai um PROMPT ÚNICO (bem completo) para você colar no Replit AI/Agent pedindo análise, testes e ajustes exatamente nos 4 pontos: renomear para Meet Up, revisar textos, adicionar idiomas (ES/EN/FR/PT-BR), e revisar tudo em cada língua.
+
+⸻
+
+✅ PROMPT DE ANÁLISE, TESTES E AJUSTES (colar no Replit)
+
+Cole isso no Replit AI/Agent:
+
+⸻
+
+Você é um engenheiro(a) full-stack e QA. Analise o projeto atual (Node.js + Express + HTML/CSS/JS) e execute uma rodada completa de testes, revisão de UX copy e ajustes.
+
+Objetivos obrigatórios
+
+1) Renomear o aplicativo para “Meet Up”
+	•	Trocar em todos os lugares onde o nome aparece:
+	•	manifest.json (name, short_name)
+	•	<title> das páginas
+	•	textos de cabeçalho/menus
+	•	README (se existir)
+	•	mensagens de push (título default)
+	•	páginas de doação (se existirem)
+	•	Garantir consistência: sempre “Meet Up” (com espaço e capitalização correta).
+
+2) Revisão e correção dos textos do front-end
+	•	Faça revisão completa de ortografia, clareza e tom.
+	•	Ajuste microcopy para ser:
+	•	acolhedor(a), direto(a), seguro(a)
+	•	focado no Caminho de Santiago (peregrinos)
+	•	sem termos técnicos
+	•	com instruções claras (“Criar atividade”, “Entrar no grupo”, “Ativar notificações”, etc.)
+	•	Revisar textos em:
+	•	Home
+	•	Login/Cadastro
+	•	Dashboard
+	•	Criar atividade
+	•	Lista de atividades
+	•	Mapa
+	•	Detalhe da atividade + chat
+	•	Perfil
+	•	Doações
+	•	Padronizar termos:
+	•	“Atividade”, “Grupo”, “Vagas”, “Cidade”, “Data”, “Horário”, “Participantes”
+	•	Remover duplicidades e mensagens confusas.
+	•	Garantir que mensagens de erro sejam úteis (ex: campos obrigatórios, falha de login, etc.)
+
+3) Adicionar suporte multilíngue (ES, EN, FR, PT-BR) e aumentar alcance
+
+Implemente um sistema simples de i18n sem depender de bibliotecas pesadas, com:
+	•	Arquivo(s) JSON de traduções (ex.: public/i18n/pt-BR.json, en.json, es.json, fr.json)
+	•	Uma função t(key) no JS que:
+	•	carrega o idioma escolhido
+	•	substitui textos do DOM usando data-i18n="key"
+	•	Um seletor de idioma visível e simples:
+	•	no topo do app (navbar) e/ou na tela inicial
+	•	opções: 🇧🇷 PT-BR, 🇪🇸 ES, 🇺🇸 EN, 🇫🇷 FR
+	•	Persistência do idioma:
+	•	salvar em localStorage (lang=pt-BR|en|es|fr)
+	•	ao abrir, usar o idioma salvo
+	•	Idioma padrão:
+	•	detectar navigator.language e usar:
+	•	pt-BR se começar com pt
+	•	senão en como padrão
+
+“Aumentar alcance”
+
+Faça ajustes no copy e UX para favorecer viralização orgânica:
+	•	incluir CTA discreto em:
+	•	Home: “Compartilhe com outros peregrinos”
+	•	Depois de criar atividade: “Copiar link do grupo”
+	•	gerar “link compartilhável” para a atividade (ex: /activity.html?id=...)
+	•	adicionar meta tags básicas (SEO):
+	•	title/description por página (no mínimo index)
+	•	Open Graph tags para compartilhamento (título, descrição, url)
+	•	Garantir que o conteúdo essencial apareça sem depender apenas de JS (quando possível).
+
+4) Revisar novamente os textos em cada língua
+	•	Depois de implementar i18n, revisar e ajustar os textos de:
+	•	Português (Brasil)
+	•	Espanhol
+	•	Inglês
+	•	Francês
+	•	Garantir que traduções sejam naturais (não literais/robóticas).
+	•	Manter consistência dos termos e botões nas quatro línguas.
+	•	Garantir que as mensagens de erro e sucesso também estejam traduzidas.
+
+Testes e validação (obrigatório)
+
+Execute e documente uma validação manual com checklist:
+	•	Troca de idioma em todas as telas funciona
+	•	Persistência do idioma após refresh
+	•	Textos não “quebram” layout (botões e headings não estouram)
+	•	Fluxos principais:
+	•	cadastro → login
+	•	criar atividade → visualizar na lista → abrir detalhe → entrar/sair do grupo
+	•	chat envia/recebe
+	•	mapa carrega e pins abrem detalhes
+	•	doação (ao menos fluxo até redirect)
+	•	Verificar console do navegador: nenhum erro crítico
+
+Entregáveis
+	1.	Implementação completa do i18n (arquivos e função t(key))
+	2.	Atualização de todos os textos com revisão
+	3.	Nome do app alterado para “Meet Up”
+	4.	Revisão final das 4 línguas
+	5.	Um arquivo TESTING_NOTES.md com:
+	•	o que foi testado
+	•	o que foi ajustado
+	•	pendências (se existirem)
+
+Aplique as mudanças diretamente no projeto e mantenha o código simples, bem comentado e fácil de editar.
+
+⸻
+
+Dica prática (pra funcionar bem)
+
+Depois que o Agent aplicar:
+	•	rode o app
+	•	troque idioma em 3–4 telas
+	•	faça refresh
+	•	crie uma atividade e confira se o texto aparece correto nas 4 línguas
+
+Se você quiser, me cole aqui 1 print ou o HTML da home + dashboard, que eu também posso refinar os textos nas 4 línguas com um tom bem peregrino (curto, humano e claro).

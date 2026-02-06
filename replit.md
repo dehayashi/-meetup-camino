@@ -1,9 +1,19 @@
-# Caminho Companion
+# Meet Up
 
 ## Overview
-A full-stack web application that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments and Web Push notifications.
+A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-06: Rebrand to "Meet Up" + i18n + Sharing/SEO
+  - App renamed from "Caminho Companion" to "Meet Up" everywhere
+  - Full i18n system with React context, useT() hook, and JSON translation files
+  - 4 languages: Portuguese (Brazil), English, Spanish, French
+  - Language selector (globe icon) in header and landing page
+  - Browser language detection with localStorage persistence
+  - All UI text extracted to translation keys across all components
+  - Sharing CTA on landing page, copy link button on activity detail
+  - Open Graph meta tags for social sharing
+  - SEO-friendly meta description and title
 - 2026-02-06: Web Push Notifications + BRL Currency
   - Web Push notifications using web-push library + VAPID keys
   - Push subscription management (subscribe/unsubscribe per user)
@@ -33,7 +43,7 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 
 ## User Preferences
 - Mobile-first, responsive design
-- Portuguese (Brazilian) as primary language
+- Portuguese (Brazilian) as default language, with EN/ES/FR support
 - Clean, pilgrimage-themed aesthetic
 
 ## Project Architecture
@@ -44,6 +54,7 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - **Maps**: Leaflet.js with OpenStreetMap tiles
 - **Payments**: Stripe Checkout (one-time donations in BRL)
 - **Push**: Web Push (web-push library + VAPID keys)
+- **i18n**: Custom React context + JSON translation files (pt-BR, en, es, fr)
 - **Routing**: wouter (frontend), Express (backend)
 - **State**: TanStack React Query
 - **PWA**: manifest.json + service worker (sw.js)
@@ -56,7 +67,10 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - `server/webhookHandlers.ts` - Stripe webhook processing
 - `server/index.ts` - Express setup with Stripe init + webhook before express.json()
 - `server/seed.ts` - Seed data for demo
-- `client/src/App.tsx` - Main app with routing and auth flow
+- `client/src/App.tsx` - Main app with routing, auth flow, I18nProvider
+- `client/src/lib/i18n.tsx` - i18n context, useT hook, language detection
+- `client/src/i18n/*.json` - Translation files (pt-BR, en, es, fr)
+- `client/src/components/language-selector.tsx` - Language dropdown component
 - `client/src/pages/donate.tsx` - Stripe donation checkout page (BRL)
 - `client/src/pages/profile.tsx` - Profile + NotificationSettings component
 - `client/src/pages/` - All page components

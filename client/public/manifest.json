@@ -1,7 +1,7 @@
 {
-  "name": "Caminho Companion",
-  "short_name": "Caminho",
-  "description": "Conecte-se com peregrinos no Caminho de Santiago. Compartilhe transporte, refeições e atividades.",
+  "name": "Meet Up - Camino de Santiago",
+  "short_name": "Meet Up",
+  "description": "Connect with pilgrims on the Camino de Santiago / Conecte-se com peregrinos no Caminho de Santiago.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f0e8",

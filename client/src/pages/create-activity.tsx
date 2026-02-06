@@ -13,6 +13,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
 import { MapPin, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
+import { useT } from "@/lib/i18n";
 
 const cities = [
   "Porto", "Lisboa", "Saint-Jean-Pied-de-Port", "Pamplona", "Estella",
@@ -51,6 +52,7 @@ type FormValues = z.infer<typeof formSchema>;
 export default function CreateActivity() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const { t } = useT();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -76,14 +78,14 @@ export default function CreateActivity() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast({ title: "Atividade criada!", description: "Sua atividade foi publicada." });
+      toast({ title: t("create_success"), description: t("create_success_desc") });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities/recommended"] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities/mine"] });
       setLocation(`/activity/${data.id}`);
     },
     onError: () => {
-      toast({ title: "Erro", description: "N\u00e3o foi poss\u00edvel criar a atividade.", variant: "destructive" });
+      toast({ title: t("create_error"), description: t("create_error_desc"), variant: "destructive" });
     },
   });
 
@@ -95,7 +97,7 @@ export default function CreateActivity() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="font-serif text-xl font-bold" data-testid="text-create-title">Criar Atividade</h1>
+        <h1 className="font-serif text-xl font-bold" data-testid="text-create-title">{t("create_title")}</h1>
       </div>
 
       <Card className="p-4">
@@ -106,9 +108,9 @@ export default function CreateActivity() {
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>T\u00edtulo</FormLabel>
+                  <FormLabel>{t("create_field_title")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Dividir Uber para Le\u00f3n" {...field} data-testid="input-title" />
+                    <Input placeholder={t("create_field_title_placeholder")} {...field} data-testid="input-title" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -120,7 +122,7 @@ export default function CreateActivity() {
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Tipo</FormLabel>
+                  <FormLabel>{t("create_field_type")}</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger data-testid="select-type">
@@ -128,10 +130,10 @@ export default function CreateActivity() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="transport">Transporte</SelectItem>
-                      <SelectItem value="meal">Refei\u00e7\u00e3o</SelectItem>
-                      <SelectItem value="hike">Passeio</SelectItem>
-                      <SelectItem value="lodging">Hospedagem</SelectItem>
+                      <SelectItem value="transport">{t("type_transport")}</SelectItem>
+                      <SelectItem value="meal">{t("type_meal")}</SelectItem>
+                      <SelectItem value="hike">{t("type_hike")}</SelectItem>
+                      <SelectItem value="lodging">{t("type_lodging")}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -144,9 +146,9 @@ export default function CreateActivity() {
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descri\u00e7\u00e3o (opcional)</FormLabel>
+                  <FormLabel>{t("create_field_description")}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Detalhes da atividade..." {...field} data-testid="input-description" />
+                    <Textarea placeholder={t("create_field_description_placeholder")} {...field} data-testid="input-description" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -159,11 +161,11 @@ export default function CreateActivity() {
                 name="city"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cidade</FormLabel>
+                    <FormLabel>{t("create_field_city")}</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-city">
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder={t("create_field_city_placeholder")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -182,7 +184,7 @@ export default function CreateActivity() {
                 name="spots"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Vagas</FormLabel>
+                    <FormLabel>{t("create_field_spots")}</FormLabel>
                     <FormControl>
                       <Input type="number" min={2} max={20} {...field} data-testid="input-spots" />
                     </FormControl>
@@ -198,7 +200,7 @@ export default function CreateActivity() {
                 name="date"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Data</FormLabel>
+                    <FormLabel>{t("create_field_date")}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} data-testid="input-date" />
                     </FormControl>
@@ -212,7 +214,7 @@ export default function CreateActivity() {
                 name="time"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Hor\u00e1rio (opcional)</FormLabel>
+                    <FormLabel>{t("create_field_time")}</FormLabel>
                     <FormControl>
                       <Input type="time" {...field} data-testid="input-time" />
                     </FormControl>
@@ -228,7 +230,7 @@ export default function CreateActivity() {
               disabled={createMutation.isPending}
               data-testid="button-submit-activity"
             >
-              {createMutation.isPending ? "Criando..." : "Criar Atividade"}
+              {createMutation.isPending ? t("create_submitting") : t("create_submit")}
             </Button>
           </form>
         </Form>

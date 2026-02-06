@@ -4,6 +4,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, useTheme } from "@/components/theme-provider";
+import { I18nProvider, useT } from "@/lib/i18n";
+import { LanguageSelector } from "@/components/language-selector";
 import { useAuth } from "@/hooks/use-auth";
 import { BottomNav } from "@/components/bottom-nav";
 import { Button } from "@/components/ui/button";
@@ -28,17 +30,21 @@ function ThemeToggle() {
 }
 
 function AuthenticatedApp() {
+  const { t } = useT();
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
         <div className="max-w-lg mx-auto flex items-center justify-between gap-2 px-4 h-14">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs font-bold">CC</span>
+              <span className="text-primary-foreground text-xs font-bold">MU</span>
             </div>
-            <span className="font-serif font-bold text-base" data-testid="text-app-name">Caminho Companion</span>
+            <span className="font-serif font-bold text-base" data-testid="text-app-name">{t("app_name")}</span>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-1">
+            <LanguageSelector />
+            <ThemeToggle />
+          </div>
         </div>
       </header>
       <main>
@@ -60,15 +66,16 @@ function AuthenticatedApp() {
 
 function Router() {
   const { user, isLoading } = useAuth();
+  const { t } = useT();
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center animate-pulse">
-            <span className="text-primary-foreground text-sm font-bold">CC</span>
+            <span className="text-primary-foreground text-sm font-bold">MU</span>
           </div>
-          <p className="text-sm text-muted-foreground">Carregando...</p>
+          <p className="text-sm text-muted-foreground">{t("loading")}</p>
         </div>
       </div>
     );
@@ -85,10 +92,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
+        <I18nProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router />
+          </TooltipProvider>
+        </I18nProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

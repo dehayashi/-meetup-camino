@@ -11,17 +11,18 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useT } from "@/lib/i18n";
 import {
   ArrowLeft, MapPin, Calendar, Clock, Users, Send, Star,
-  Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus,
+  Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus, Copy,
 } from "lucide-react";
 import type { Activity, PilgrimProfile, ChatMessage, Rating } from "@shared/schema";
 
-const typeConfig: Record<string, { icon: typeof Car; label: string }> = {
-  transport: { icon: Car, label: "Transporte" },
-  meal: { icon: UtensilsCrossed, label: "Refei\u00e7\u00e3o" },
-  hike: { icon: Mountain, label: "Passeio" },
-  lodging: { icon: BedDouble, label: "Hospedagem" },
+const typeIcons: Record<string, typeof Car> = {
+  transport: Car,
+  meal: UtensilsCrossed,
+  hike: Mountain,
+  lodging: BedDouble,
 };
 
 interface ActivityDetail extends Activity {
@@ -36,11 +37,19 @@ export default function ActivityDetail() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useT();
   const [, setLocation] = useLocation();
   const [message, setMessage] = useState("");
   const [ratingScore, setRatingScore] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const typeLabels: Record<string, string> = {
+    transport: t("type_transport"),
+    meal: t("type_meal"),
+    hike: t("type_hike"),
+    lodging: t("type_lodging"),
+  };
 
   const { data: activity, isLoading } = useQuery<ActivityDetail>({
     queryKey: ["/api/activities", id],
@@ -63,21 +72,21 @@ export default function ActivityDetail() {
   const joinMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/activities/${id}/join`),
     onSuccess: () => {
-      toast({ title: "Entrou no grupo!" });
+      toast({ title: t("toast_joined") });
       queryClient.invalidateQueries({ queryKey: ["/api/activities", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
-    onError: () => toast({ title: "Erro ao entrar", variant: "destructive" }),
+    onError: () => toast({ title: t("toast_join_error"), variant: "destructive" }),
   });
 
   const leaveMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/activities/${id}/leave`),
     onSuccess: () => {
-      toast({ title: "Voc\u00ea saiu do grupo." });
+      toast({ title: t("toast_left") });
       queryClient.invalidateQueries({ queryKey: ["/api/activities", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
-    onError: () => toast({ title: "Erro ao sair", variant: "destructive" }),
+    onError: () => toast({ title: t("toast_leave_error"), variant: "destructive" }),
   });
 
   const sendMessageMutation = useMutation({
@@ -92,13 +101,18 @@ export default function ActivityDetail() {
     mutationFn: (data: { score: number; comment: string }) =>
       apiRequest("POST", `/api/activities/${id}/ratings`, data),
     onSuccess: () => {
-      toast({ title: "Avalia\u00e7\u00e3o enviada!" });
+      toast({ title: t("toast_rating_sent") });
       setRatingScore(0);
       setRatingComment("");
       queryClient.invalidateQueries({ queryKey: ["/api/activities", id, "ratings"] });
     },
-    onError: () => toast({ title: "Erro ao avaliar", variant: "destructive" }),
+    onError: () => toast({ title: t("toast_rating_error"), variant: "destructive" }),
   });
+
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href);
+    toast({ title: t("activity_link_copied") });
+  };
 
   if (isLoading) {
     return (
@@ -113,17 +127,18 @@ export default function ActivityDetail() {
   if (!activity) {
     return (
       <div className="p-4 pb-20 text-center">
-        <p className="text-muted-foreground">Atividade n\u00e3o encontrada.</p>
-        <Link href="/activities"><Button variant="ghost" className="mt-2">Voltar</Button></Link>
+        <p className="text-muted-foreground">{t("activity_not_found")}</p>
+        <Link href="/activities"><Button variant="ghost" className="mt-2">{t("activity_back")}</Button></Link>
       </div>
     );
   }
 
-  const config = typeConfig[activity.type] || typeConfig.hike;
-  const TypeIcon = config.icon;
+  const TypeIcon = typeIcons[activity.type] || typeIcons.hike;
+  const typeLabel = typeLabels[activity.type] || typeLabels.hike;
   const spotsLeft = (activity.spots || 4) - activity.participantCount;
   const canJoin = !activity.isParticipant && !activity.isCreator && spotsLeft > 0;
   const isMember = activity.isParticipant || activity.isCreator;
+  const spotsText = spotsLeft === 1 ? t("spots_one", { count: spotsLeft }) : t("spots_other", { count: spotsLeft });
 
   return (
     <div className="pb-20 max-w-lg mx-auto">
@@ -133,9 +148,12 @@ export default function ActivityDetail() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="font-serif text-lg font-bold truncate" data-testid="text-activity-title">
+        <h1 className="font-serif text-lg font-bold truncate flex-1" data-testid="text-activity-title">
           {activity.title}
         </h1>
+        <Button variant="ghost" size="icon" onClick={copyLink} data-testid="button-copy-link">
+          <Copy className="w-4 h-4" />
+        </Button>
       </div>
 
       <div className="px-4 space-y-4">
@@ -143,9 +161,9 @@ export default function ActivityDetail() {
           <div className="flex items-center gap-2 mb-3 flex-wrap">
             <Badge variant="secondary">
               <TypeIcon className="w-3 h-3 mr-1" />
-              {config.label}
+              {typeLabel}
             </Badge>
-            <span className="text-xs text-muted-foreground">por {activity.creatorName}</span>
+            <span className="text-xs text-muted-foreground">{t("by_creator", { name: activity.creatorName })}</span>
           </div>
 
           {activity.description && (
@@ -167,7 +185,7 @@ export default function ActivityDetail() {
             <span className="flex items-center gap-1.5">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className={spotsLeft <= 1 ? "text-destructive font-medium" : "text-muted-foreground"}>
-                {spotsLeft} vaga{spotsLeft !== 1 ? "s" : ""}
+                {spotsText}
               </span>
             </span>
           </div>
@@ -176,13 +194,13 @@ export default function ActivityDetail() {
             {canJoin && (
               <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending} className="flex-1" data-testid="button-join">
                 <UserPlus className="w-4 h-4 mr-1" />
-                {joinMutation.isPending ? "Entrando..." : "Entrar no Grupo"}
+                {joinMutation.isPending ? t("activity_joining") : t("activity_join")}
               </Button>
             )}
             {activity.isParticipant && (
               <Button variant="outline" onClick={() => leaveMutation.mutate()} disabled={leaveMutation.isPending} data-testid="button-leave">
                 <LogOut className="w-4 h-4 mr-1" />
-                Sair
+                {t("activity_leave")}
               </Button>
             )}
           </div>
@@ -190,7 +208,7 @@ export default function ActivityDetail() {
 
         {activity.participants && activity.participants.length > 0 && (
           <Card className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Participantes ({activity.participantCount})</h3>
+            <h3 className="font-semibold text-sm mb-3">{t("activity_participants", { count: activity.participantCount })}</h3>
             <div className="flex flex-wrap gap-2">
               {activity.participants.map((p) => (
                 <div key={p.userId} className="flex items-center gap-2 bg-secondary/50 rounded-md px-2 py-1">
@@ -207,7 +225,7 @@ export default function ActivityDetail() {
 
         {isMember && (
           <Card className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Chat</h3>
+            <h3 className="font-semibold text-sm mb-3">{t("activity_chat")}</h3>
             <div className="max-h-60 overflow-y-auto space-y-2 mb-3">
               {messages && messages.length > 0 ? (
                 messages.map((msg) => {
@@ -227,7 +245,7 @@ export default function ActivityDetail() {
                 })
               ) : (
                 <p className="text-xs text-muted-foreground text-center py-4">
-                  Nenhuma mensagem ainda. Diga ol\u00e1!
+                  {t("activity_no_messages")}
                 </p>
               )}
               <div ref={chatEndRef} />
@@ -236,7 +254,7 @@ export default function ActivityDetail() {
               <Input
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Escreva uma mensagem..."
+                placeholder={t("activity_message_placeholder")}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && message.trim()) {
                     sendMessageMutation.mutate(message.trim());
@@ -257,7 +275,7 @@ export default function ActivityDetail() {
         )}
 
         <Card className="p-4">
-          <h3 className="font-semibold text-sm mb-3">Avalia\u00e7\u00f5es</h3>
+          <h3 className="font-semibold text-sm mb-3">{t("activity_ratings")}</h3>
           {ratings && ratings.length > 0 ? (
             <div className="space-y-3 mb-4">
               {ratings.map((r) => (
@@ -278,7 +296,7 @@ export default function ActivityDetail() {
               ))}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground mb-4">Nenhuma avalia\u00e7\u00e3o ainda.</p>
+            <p className="text-xs text-muted-foreground mb-4">{t("activity_no_ratings")}</p>
           )}
 
           {isMember && (
@@ -300,7 +318,7 @@ export default function ActivityDetail() {
               <Textarea
                 value={ratingComment}
                 onChange={(e) => setRatingComment(e.target.value)}
-                placeholder="Coment\u00e1rio (opcional)..."
+                placeholder={t("activity_rating_placeholder")}
                 className="text-sm mb-2"
                 data-testid="input-rating-comment"
               />
@@ -310,7 +328,7 @@ export default function ActivityDetail() {
                 onClick={() => ratingMutation.mutate({ score: ratingScore, comment: ratingComment })}
                 data-testid="button-submit-rating"
               >
-                Enviar Avalia\u00e7\u00e3o
+                {t("activity_submit_rating")}
               </Button>
             </div>
           )}

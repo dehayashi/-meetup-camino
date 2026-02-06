@@ -1,27 +1,32 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Users, MessageCircle, Heart, ArrowRight, Shield } from "lucide-react";
+import { MapPin, Users, MessageCircle, Heart, ArrowRight, Shield, Share2 } from "lucide-react";
+import { useT } from "@/lib/i18n";
+import { LanguageSelector } from "@/components/language-selector";
+import { useMemo } from "react";
 const heroImage = "/images/hero-camino.png";
 
-const features = [
-  {
-    icon: Users,
-    title: "Encontre Companheiros",
-    description: "Conecte-se com peregrinos que est\u00e3o na mesma cidade e nas mesmas datas que voc\u00ea.",
-  },
-  {
-    icon: MapPin,
-    title: "Atividades no Mapa",
-    description: "Visualize transportes, refei\u00e7\u00f5es e passeios pr\u00f3ximos de voc\u00ea no mapa interativo.",
-  },
-  {
-    icon: MessageCircle,
-    title: "Chat em Grupo",
-    description: "Converse diretamente com os participantes de cada atividade em tempo real.",
-  },
-];
-
 export default function Landing() {
+  const { t } = useT();
+
+  const features = useMemo(() => [
+    {
+      icon: Users,
+      title: t("landing_feature_companions_title"),
+      description: t("landing_feature_companions_desc"),
+    },
+    {
+      icon: MapPin,
+      title: t("landing_feature_map_title"),
+      description: t("landing_feature_map_desc"),
+    },
+    {
+      icon: MessageCircle,
+      title: t("landing_feature_chat_title"),
+      description: t("landing_feature_chat_desc"),
+    },
+  ], [t]);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
@@ -30,11 +35,14 @@ export default function Landing() {
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <MapPin className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="font-serif font-bold text-lg" data-testid="text-logo">Caminho Companion</span>
+            <span className="font-serif font-bold text-lg" data-testid="text-logo">{t("app_name")}</span>
           </div>
-          <a href="/api/login">
-            <Button data-testid="button-login-header">Entrar</Button>
-          </a>
+          <div className="flex items-center gap-2">
+            <LanguageSelector />
+            <a href="/api/login">
+              <Button data-testid="button-login-header">{t("landing_login")}</Button>
+            </a>
+          </div>
         </div>
       </header>
 
@@ -49,22 +57,21 @@ export default function Landing() {
           <div className="absolute inset-0 flex flex-col justify-end p-6 md:p-12 max-w-6xl mx-auto">
             <div className="max-w-xl">
               <h1 className="font-serif text-3xl md:text-5xl font-bold text-white leading-tight mb-4" data-testid="text-hero-title">
-                Sua jornada no Caminho, com companhia
+                {t("landing_hero_title")}
               </h1>
               <p className="text-white/80 text-base md:text-lg mb-6 leading-relaxed">
-                Divida transportes, compartilhe refei\u00e7\u00f5es e encontre
-                companheiros para cada etapa do Caminho de Santiago.
+                {t("landing_hero_subtitle")}
               </p>
               <div className="flex items-center gap-3 flex-wrap">
                 <a href="/api/login">
                   <Button size="lg" data-testid="button-login-hero">
-                    Come\u00e7ar Agora
+                    {t("landing_cta")}
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                 </a>
                 <div className="flex items-center gap-1.5 text-white/60 text-sm">
                   <Shield className="w-4 h-4" />
-                  <span>Gratuito para sempre</span>
+                  <span>{t("landing_free")}</span>
                 </div>
               </div>
             </div>
@@ -72,12 +79,19 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="py-4 px-4 max-w-6xl mx-auto">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
+          <Share2 className="w-4 h-4" />
+          <span>{t("landing_share_cta")}</span>
+        </div>
+      </section>
+
       <section className="py-16 px-4 max-w-6xl mx-auto">
         <h2 className="font-serif text-2xl md:text-3xl font-bold text-center mb-2" data-testid="text-features-title">
-          Tudo que voc\u00ea precisa no Caminho
+          {t("landing_features_title")}
         </h2>
         <p className="text-muted-foreground text-center mb-10 max-w-md mx-auto">
-          Planeje, conecte e compartilhe experi\u00eancias com outros peregrinos.
+          {t("landing_features_subtitle")}
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {features.map((f, i) => (
@@ -96,14 +110,14 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Heart className="w-5 h-5 text-destructive" />
-            <span className="font-serif text-xl font-bold">Apoie o Projeto</span>
+            <span className="font-serif text-xl font-bold">{t("landing_donate_title")}</span>
           </div>
           <p className="text-muted-foreground text-sm mb-4 max-w-md mx-auto">
-            O Caminho Companion \u00e9 mantido por volunt\u00e1rios. Sua doa\u00e7\u00e3o nos ajuda a continuar.
+            {t("landing_donate_desc")}
           </p>
           <a href="/api/login">
             <Button variant="outline" data-testid="button-donate-landing">
-              Fa\u00e7a uma Doa\u00e7\u00e3o
+              {t("landing_donate_btn")}
             </Button>
           </a>
         </div>
@@ -111,8 +125,8 @@ export default function Landing() {
 
       <footer className="py-6 px-4 border-t border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
-          <span>&copy; 2026 Caminho Companion</span>
-          <span>Buen Camino!</span>
+          <span>&copy; {t("landing_footer_copyright")}</span>
+          <span>{t("buen_camino")}</span>
         </div>
       </footer>
     </div>

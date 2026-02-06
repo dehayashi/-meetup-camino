@@ -7,11 +7,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MapPin, Calendar, Plus, TrendingUp, Heart } from "lucide-react";
 import { Link, useLocation } from "wouter";
+import { useT } from "@/lib/i18n";
 import type { Activity, PilgrimProfile } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useT();
 
   const { data: profile, isLoading: profileLoading } = useQuery<PilgrimProfile | null>({
     queryKey: ["/api/profile"],
@@ -45,12 +47,12 @@ export default function Dashboard() {
           <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
             <MapPin className="w-8 h-8 text-primary" />
           </div>
-          <h2 className="font-serif text-xl font-bold mb-2" data-testid="text-welcome">Buen Camino!</h2>
+          <h2 className="font-serif text-xl font-bold mb-2" data-testid="text-welcome">{t("dashboard_welcome")}</h2>
           <p className="text-muted-foreground text-sm mb-4">
-            Configure seu perfil de peregrino para come\u00e7ar a encontrar companheiros.
+            {t("dashboard_setup_desc")}
           </p>
           <Link href="/profile">
-            <Button data-testid="button-setup-profile">Configurar Perfil</Button>
+            <Button data-testid="button-setup-profile">{t("dashboard_setup_btn")}</Button>
           </Link>
         </Card>
       </div>
@@ -68,9 +70,9 @@ export default function Dashboard() {
         </Avatar>
         <div className="flex-1 min-w-0">
           <h1 className="font-semibold text-lg truncate" data-testid="text-greeting">
-            Ol\u00e1, {profile.displayName}!
+            {t("dashboard_greeting", { name: profile.displayName || "" })}
           </h1>
-          <p className="text-sm text-muted-foreground">Buen Camino</p>
+          <p className="text-sm text-muted-foreground">{t("buen_camino")}</p>
         </div>
       </div>
 
@@ -92,13 +94,13 @@ export default function Dashboard() {
         <Link href="/create">
           <Card className="p-4 hover-elevate overflow-visible cursor-pointer">
             <Plus className="w-5 h-5 text-primary mb-2" />
-            <span className="text-sm font-medium">Criar Atividade</span>
+            <span className="text-sm font-medium">{t("dashboard_create_activity")}</span>
           </Card>
         </Link>
         <Link href="/donate">
           <Card className="p-4 hover-elevate overflow-visible cursor-pointer">
             <Heart className="w-5 h-5 text-destructive mb-2" />
-            <span className="text-sm font-medium">Apoiar</span>
+            <span className="text-sm font-medium">{t("dashboard_support")}</span>
           </Card>
         </Link>
       </div>
@@ -108,10 +110,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-2 mb-3">
             <h2 className="font-semibold flex items-center gap-1.5">
               <Calendar className="w-4 h-4 text-primary" />
-              Minhas Atividades
+              {t("dashboard_my_activities")}
             </h2>
             <Link href="/activities">
-              <Button variant="ghost" size="sm" data-testid="button-see-all-mine">Ver Todas</Button>
+              <Button variant="ghost" size="sm" data-testid="button-see-all-mine">{t("dashboard_see_all")}</Button>
             </Link>
           </div>
           <div className="space-y-3">
@@ -130,10 +132,10 @@ export default function Dashboard() {
         <div className="flex items-center justify-between gap-2 mb-3">
           <h2 className="font-semibold flex items-center gap-1.5">
             <TrendingUp className="w-4 h-4 text-primary" />
-            Recomendadas
+            {t("dashboard_recommended")}
           </h2>
           <Link href="/activities">
-            <Button variant="ghost" size="sm" data-testid="button-see-all-recommended">Ver Todas</Button>
+            <Button variant="ghost" size="sm" data-testid="button-see-all-recommended">{t("dashboard_see_all")}</Button>
           </Link>
         </div>
         {activitiesLoading ? (
@@ -154,7 +156,7 @@ export default function Dashboard() {
         ) : (
           <Card className="p-6 text-center">
             <p className="text-muted-foreground text-sm">
-              Nenhuma atividade recomendada ainda. Que tal criar a primeira?
+              {t("dashboard_no_recommended")}
             </p>
           </Card>
         )}

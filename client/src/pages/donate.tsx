@@ -8,11 +8,13 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Heart, ArrowLeft, CreditCard, Check, Loader2, XCircle } from "lucide-react";
 import { Link, useSearch } from "wouter";
+import { useT } from "@/lib/i18n";
 
 const presetAmounts = [5, 10, 25, 50];
 
 export default function Donate() {
   const { toast } = useToast();
+  const { t } = useT();
   const [amount, setAmount] = useState<number>(10);
   const [message, setMessage] = useState("");
   const searchString = useSearch();
@@ -54,7 +56,7 @@ export default function Donate() {
       }
     },
     onError: () => {
-      toast({ title: "Erro ao iniciar pagamento", variant: "destructive" });
+      toast({ title: t("donate_checkout_error"), variant: "destructive" });
     },
   });
 
@@ -65,15 +67,15 @@ export default function Donate() {
           <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-4">
             <Check className="w-8 h-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-thank-you">Muito Obrigado!</h2>
+          <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-thank-you">{t("donate_thank_you")}</h2>
           <p className="text-muted-foreground mb-1">
-            Sua doa&ccedil;&atilde;o{paymentResult.amount ? ` de R$${paymentResult.amount}` : ""} foi confirmada com sucesso.
+            {t("donate_success_msg", { amount: paymentResult.amount ? ` de R$${paymentResult.amount}` : "" })}
           </p>
           <p className="text-sm text-muted-foreground mb-6">
-            Voc&ecirc; est&aacute; ajudando a manter o Caminho Companion gratuito para todos os peregrinos.
+            {t("donate_success_desc")}
           </p>
           <Link href="/">
-            <Button data-testid="button-back-home">Voltar ao In&iacute;cio</Button>
+            <Button data-testid="button-back-home">{t("donate_back_home")}</Button>
           </Link>
         </Card>
       </div>
@@ -87,16 +89,16 @@ export default function Donate() {
           <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-4">
             <XCircle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
           </div>
-          <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-cancelled">Pagamento Cancelado</h2>
+          <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-cancelled">{t("donate_cancelled")}</h2>
           <p className="text-muted-foreground mb-6">
-            O pagamento foi cancelado. Voc&ecirc; pode tentar novamente quando quiser.
+            {t("donate_cancelled_msg")}
           </p>
           <div className="flex gap-2 justify-center flex-wrap">
             <Button variant="outline" onClick={() => setPaymentResult({ status: null })} data-testid="button-try-again">
-              Tentar Novamente
+              {t("donate_try_again")}
             </Button>
             <Link href="/">
-              <Button data-testid="button-back-home-cancel">Voltar ao In&iacute;cio</Button>
+              <Button data-testid="button-back-home-cancel">{t("donate_back_home")}</Button>
             </Link>
           </div>
         </Card>
@@ -112,17 +114,16 @@ export default function Donate() {
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="font-serif text-xl font-bold" data-testid="text-donate-title">Apoiar o Projeto</h1>
+        <h1 className="font-serif text-xl font-bold" data-testid="text-donate-title">{t("donate_title")}</h1>
       </div>
 
       <Card className="p-6 text-center">
         <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
           <Heart className="w-7 h-7 text-destructive" />
         </div>
-        <h2 className="font-serif text-lg font-bold mb-2">Fa&ccedil;a uma Doa&ccedil;&atilde;o</h2>
+        <h2 className="font-serif text-lg font-bold mb-2">{t("donate_heading")}</h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-          O Caminho Companion &eacute; gratuito e mantido por volunt&aacute;rios.
-          Sua contribui&ccedil;&atilde;o nos ajuda a manter o projeto funcionando.
+          {t("donate_description")}
         </p>
 
         <div className="flex gap-2 justify-center mb-4 flex-wrap">
@@ -147,13 +148,13 @@ export default function Donate() {
             className="text-center text-lg font-semibold"
             data-testid="input-custom-amount"
           />
-          <span className="text-xs text-muted-foreground">Valor em reais (BRL)</span>
+          <span className="text-xs text-muted-foreground">{t("donate_amount_label")}</span>
         </div>
 
         <Textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Deixe uma mensagem (opcional)..."
+          placeholder={t("donate_message_placeholder")}
           className="mb-4 text-sm"
           data-testid="input-donate-message"
         />
@@ -168,18 +169,18 @@ export default function Donate() {
           {checkoutMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Redirecionando...
+              {t("donate_redirecting")}
             </>
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
-              Doar R${amount} via Stripe
+              {t("donate_button", { amount })}
             </>
           )}
         </Button>
 
         <p className="text-[10px] text-muted-foreground mt-3">
-          Pagamento seguro processado pelo Stripe. Voc&ecirc; ser&aacute; redirecionado para o checkout.
+          {t("donate_secure_note")}
         </p>
       </Card>
     </div>

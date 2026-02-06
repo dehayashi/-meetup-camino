@@ -73,7 +73,7 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch (e) {}
-  const title = data.title || "Caminho Companion";
+  const title = data.title || "Meet Up";
   const options = {
     body: data.body || "Você tem uma novidade!",
     icon: "/icons/icon-192.png",

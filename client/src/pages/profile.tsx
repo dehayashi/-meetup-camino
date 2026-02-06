@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { LogOut, Save, X, Plus, Bell, BellOff, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { useT } from "@/lib/i18n";
 import type { PilgrimProfile } from "@shared/schema";
 
 const cities = [
@@ -54,6 +55,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 export default function Profile() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
+  const { t } = useT();
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
 
   const { data: profile, isLoading } = useQuery<PilgrimProfile | null>({
@@ -106,11 +108,11 @@ export default function Profile() {
       return res.json();
     },
     onSuccess: () => {
-      toast({ title: "Perfil salvo!" });
+      toast({ title: t("profile_saved") });
       queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
     },
     onError: () => {
-      toast({ title: "Erro ao salvar perfil", variant: "destructive" });
+      toast({ title: t("profile_save_error"), variant: "destructive" });
     },
   });
 
@@ -132,10 +134,10 @@ export default function Profile() {
   return (
     <div className="p-4 pb-20 space-y-4 max-w-lg mx-auto">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="font-serif text-xl font-bold" data-testid="text-profile-title">Meu Perfil</h1>
+        <h1 className="font-serif text-xl font-bold" data-testid="text-profile-title">{t("profile_title")}</h1>
         <Button variant="ghost" size="sm" onClick={() => logout()} data-testid="button-logout">
           <LogOut className="w-4 h-4 mr-1" />
-          Sair
+          {t("profile_logout")}
         </Button>
       </div>
 
@@ -160,7 +162,7 @@ export default function Profile() {
               name="displayName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nome de Exibi\u00e7\u00e3o</FormLabel>
+                  <FormLabel>{t("profile_display_name")}</FormLabel>
                   <FormControl>
                     <Input {...field} data-testid="input-display-name" />
                   </FormControl>
@@ -175,7 +177,7 @@ export default function Profile() {
                 name="language"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Idioma</FormLabel>
+                    <FormLabel>{t("profile_language")}</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger data-testid="select-language">
@@ -197,9 +199,9 @@ export default function Profile() {
                 name="nationality"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nacionalidade</FormLabel>
+                    <FormLabel>{t("profile_nationality")}</FormLabel>
                     <FormControl>
-                      <Input placeholder="Ex: Brasil" {...field} data-testid="input-nationality" />
+                      <Input placeholder={t("profile_nationality_placeholder")} {...field} data-testid="input-nationality" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -212,9 +214,9 @@ export default function Profile() {
               name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bio</FormLabel>
+                  <FormLabel>{t("profile_bio")}</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Conte um pouco sobre voc\u00ea..." {...field} data-testid="input-bio" />
+                    <Textarea placeholder={t("profile_bio_placeholder")} {...field} data-testid="input-bio" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -227,7 +229,7 @@ export default function Profile() {
                 name="travelStartDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>In\u00edcio da Viagem</FormLabel>
+                    <FormLabel>{t("profile_travel_start")}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} data-testid="input-travel-start" />
                     </FormControl>
@@ -240,7 +242,7 @@ export default function Profile() {
                 name="travelEndDate"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Fim da Viagem</FormLabel>
+                    <FormLabel>{t("profile_travel_end")}</FormLabel>
                     <FormControl>
                       <Input type="date" {...field} data-testid="input-travel-end" />
                     </FormControl>
@@ -251,7 +253,7 @@ export default function Profile() {
             </div>
 
             <div>
-              <FormLabel>Cidades do Caminho</FormLabel>
+              <FormLabel>{t("profile_cities")}</FormLabel>
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {cities.map((city) => {
                   const isSelected = selectedCities.includes(city);
@@ -276,14 +278,14 @@ export default function Profile() {
             </div>
 
             <div>
-              <FormLabel>Prefer\u00eancias (0-5)</FormLabel>
+              <FormLabel>{t("profile_preferences")}</FormLabel>
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <FormField
                   control={form.control}
                   name="prefTransport"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Transporte</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("profile_pref_transport")}</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} max={5} {...field} data-testid="input-pref-transport" />
                       </FormControl>
@@ -295,7 +297,7 @@ export default function Profile() {
                   name="prefMeals"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Refei\u00e7\u00f5es</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("profile_pref_meals")}</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} max={5} {...field} data-testid="input-pref-meals" />
                       </FormControl>
@@ -307,7 +309,7 @@ export default function Profile() {
                   name="prefHiking"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Caminhada</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("profile_pref_hiking")}</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} max={5} {...field} data-testid="input-pref-hiking" />
                       </FormControl>
@@ -319,7 +321,7 @@ export default function Profile() {
                   name="prefLodging"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs text-muted-foreground">Hospedagem</FormLabel>
+                      <FormLabel className="text-xs text-muted-foreground">{t("profile_pref_lodging")}</FormLabel>
                       <FormControl>
                         <Input type="number" min={0} max={5} {...field} data-testid="input-pref-lodging" />
                       </FormControl>
@@ -331,7 +333,7 @@ export default function Profile() {
 
             <Button type="submit" className="w-full" disabled={saveMutation.isPending} data-testid="button-save-profile">
               <Save className="w-4 h-4 mr-1" />
-              {saveMutation.isPending ? "Salvando..." : "Salvar Perfil"}
+              {saveMutation.isPending ? t("profile_saving") : t("profile_save")}
             </Button>
           </form>
         </Form>
@@ -344,6 +346,7 @@ export default function Profile() {
 
 function NotificationSettings() {
   const { toast } = useToast();
+  const { t } = useT();
   const [subscribing, setSubscribing] = useState(false);
 
   const { data: pushStatus, isLoading: statusLoading } = useQuery<{ subscribed: boolean }>({
@@ -361,7 +364,7 @@ function NotificationSettings() {
 
   async function enablePush() {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      toast({ title: "Seu navegador não suporta notificações push", variant: "destructive" });
+      toast({ title: t("push_not_supported"), variant: "destructive" });
       return;
     }
 
@@ -369,7 +372,7 @@ function NotificationSettings() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        toast({ title: "Permissão de notificação negada", variant: "destructive" });
+        toast({ title: t("push_permission_denied"), variant: "destructive" });
         setSubscribing(false);
         return;
       }
@@ -390,10 +393,10 @@ function NotificationSettings() {
       });
 
       queryClient.invalidateQueries({ queryKey: ["/api/push/status"] });
-      toast({ title: "Notificações ativadas!" });
+      toast({ title: t("push_activated") });
     } catch (error) {
       console.error("Push subscribe error:", error);
-      toast({ title: "Erro ao ativar notificações", variant: "destructive" });
+      toast({ title: t("push_activate_error"), variant: "destructive" });
     }
     setSubscribing(false);
   }
@@ -407,9 +410,9 @@ function NotificationSettings() {
 
       await apiRequest("DELETE", "/api/push/subscribe");
       queryClient.invalidateQueries({ queryKey: ["/api/push/status"] });
-      toast({ title: "Notificações desativadas" });
+      toast({ title: t("push_deactivated") });
     } catch (error) {
-      toast({ title: "Erro ao desativar notificações", variant: "destructive" });
+      toast({ title: t("push_deactivate_error"), variant: "destructive" });
     }
     setSubscribing(false);
   }
@@ -418,9 +421,9 @@ function NotificationSettings() {
     setTestSending(true);
     try {
       await apiRequest("POST", "/api/push/test");
-      toast({ title: "Notificação de teste enviada!" });
+      toast({ title: t("push_test_sent") });
     } catch (error) {
-      toast({ title: "Erro ao enviar notificação de teste", variant: "destructive" });
+      toast({ title: t("push_test_error"), variant: "destructive" });
     }
     setTestSending(false);
   }
@@ -431,10 +434,10 @@ function NotificationSettings() {
     <Card className="p-4">
       <h3 className="font-semibold mb-3 flex items-center gap-1.5" data-testid="text-notifications-title">
         <Bell className="w-4 h-4 text-primary" />
-        Notificações Push
+        {t("push_title")}
       </h3>
       <p className="text-sm text-muted-foreground mb-4">
-        Receba alertas sobre novas atividades, mensagens e novidades do Caminho.
+        {t("push_description")}
       </p>
 
       {statusLoading ? (
@@ -443,7 +446,7 @@ function NotificationSettings() {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400" data-testid="text-push-enabled">
             <Bell className="w-4 h-4" />
-            Notificações ativadas
+            {t("push_enabled")}
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
@@ -454,7 +457,7 @@ function NotificationSettings() {
               data-testid="button-test-push"
             >
               {testSending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Bell className="w-4 h-4 mr-1" />}
-              Testar
+              {t("push_test")}
             </Button>
             <Button
               variant="outline"
@@ -464,7 +467,7 @@ function NotificationSettings() {
               data-testid="button-disable-push"
             >
               <BellOff className="w-4 h-4 mr-1" />
-              Desativar
+              {t("push_disable")}
             </Button>
           </div>
         </div>
@@ -477,12 +480,12 @@ function NotificationSettings() {
           {subscribing ? (
             <>
               <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-              Ativando...
+              {t("push_enabling")}
             </>
           ) : (
             <>
               <Bell className="w-4 h-4 mr-1" />
-              Ativar Notificações
+              {t("push_enable")}
             </>
           )}
         </Button>

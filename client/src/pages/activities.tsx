@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ActivityCard } from "@/components/activity-card";
 import { Input } from "@/components/ui/input";
@@ -7,20 +7,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import { Search, Filter, Car, UtensilsCrossed, Mountain, BedDouble } from "lucide-react";
 import { useLocation } from "wouter";
+import { useT } from "@/lib/i18n";
 import type { Activity } from "@shared/schema";
-
-const typeFilters = [
-  { value: "", label: "Todos", icon: Filter },
-  { value: "transport", label: "Transporte", icon: Car },
-  { value: "meal", label: "Refei\u00e7\u00e3o", icon: UtensilsCrossed },
-  { value: "hike", label: "Passeio", icon: Mountain },
-  { value: "lodging", label: "Hospedagem", icon: BedDouble },
-];
 
 export default function Activities() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const { t } = useT();
+
+  const typeFilters = useMemo(() => [
+    { value: "", label: t("filter_all"), icon: Filter },
+    { value: "transport", label: t("type_transport"), icon: Car },
+    { value: "meal", label: t("type_meal"), icon: UtensilsCrossed },
+    { value: "hike", label: t("type_hike"), icon: Mountain },
+    { value: "lodging", label: t("type_lodging"), icon: BedDouble },
+  ], [t]);
 
   const { data: activities, isLoading } = useQuery<(Activity & { participantCount?: number; creatorName?: string })[]>({
     queryKey: ["/api/activities"],
@@ -37,12 +39,12 @@ export default function Activities() {
 
   return (
     <div className="p-4 pb-20 space-y-4 max-w-lg mx-auto">
-      <h1 className="font-serif text-xl font-bold" data-testid="text-activities-title">Atividades</h1>
+      <h1 className="font-serif text-xl font-bold" data-testid="text-activities-title">{t("activities_title")}</h1>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por cidade ou t\u00edtulo..."
+          placeholder={t("activities_search_placeholder")}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -89,7 +91,7 @@ export default function Activities() {
       ) : (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground text-sm">
-            Nenhuma atividade encontrada.
+            {t("activities_no_results")}
           </p>
         </Card>
       )}

@@ -19,6 +19,7 @@ import ActivityDetail from "@/pages/activity-detail";
 import MapPage from "@/pages/map-page";
 import Profile from "@/pages/profile";
 import Donate from "@/pages/donate";
+import PrivacyPolicy from "@/pages/privacy-policy";
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -54,6 +55,7 @@ function AuthenticatedApp() {
           <Route path="/map" component={MapPage} />
           <Route path="/profile" component={Profile} />
           <Route path="/donate" component={Donate} />
+          <Route path="/privacy" component={PrivacyPolicy} />
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -78,7 +80,12 @@ function Router() {
   }
 
   if (!user) {
-    return <Landing />;
+    return (
+      <Switch>
+        <Route path="/privacy" component={PrivacyPolicy} />
+        <Route component={Landing} />
+      </Switch>
+    );
   }
 
   return <AuthenticatedApp />;

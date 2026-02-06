@@ -124,7 +124,10 @@ export default function Landing() {
       <footer className="py-6 px-4 border-t border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 flex-wrap text-xs text-muted-foreground">
           <span>&copy; {t("landing_footer_copyright")}</span>
-          <span>{t("buen_camino")}</span>
+          <div className="flex items-center gap-4">
+            <a href="/privacy" className="hover-elevate px-1 py-0.5 rounded text-muted-foreground no-underline" data-testid="link-privacy-policy">{t("footer_privacy_policy")}</a>
+            <span>{t("buen_camino")}</span>
+          </div>
         </div>
       </footer>
     </div>

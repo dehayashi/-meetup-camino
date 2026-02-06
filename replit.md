@@ -4,6 +4,12 @@
 A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-06: Privacy Policy + Domain Verification
+  - Privacy policy page at /privacy compliant with LGPD (Brazil), GDPR (EU), and CCPA/CPRA (US)
+  - Privacy policy available in 4 languages (PT-BR, EN, ES, FR) matching user's locale
+  - Digital Asset Links file at /.well-known/assetlinks.json for Google Play Store TWA verification
+  - Footer link to privacy policy on landing page
+  - Custom app logo created and integrated in all headers
 - 2026-02-06: Rebrand to "Meet Up" + i18n + Sharing/SEO
   - App renamed from "Caminho Companion" to "Meet Up" everywhere
   - Full i18n system with React context, useT() hook, and JSON translation files

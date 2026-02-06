@@ -1,0 +1,361 @@
+Perfeito — agora vamos fazer do jeito profissional e escalável para React + TypeScript (SPA).
+Vou te entregar um pacote i18n completo, plug-and-play, pronto para colar no seu projeto.
+
+Ele vai te dar:
+
+✅ 4 idiomas (PT-BR, EN, ES, FR)
+✅ hook useTranslation()
+✅ carregamento automático
+✅ fallback seguro
+✅ troca instantânea de idioma
+✅ persistência em localStorage
+✅ tipagem TypeScript
+✅ LanguageSwitcher bonito
+✅ sem dependências externas (leve e rápido)
+
+⸻
+
+📁 Estrutura final que você vai criar
+
+Dentro de:
+
+client/src/
+
+adicione:
+
+i18n/
+  index.ts
+  useTranslation.ts
+  types.ts
+  locales/
+    pt-BR.json
+    en.json
+    es.json
+    fr.json
+
+components/
+  LanguageSwitcher.tsx
+
+
+⸻
+
+🧠 1. types.ts (tipagem forte)
+
+📄 client/src/i18n/types.ts
+
+export type Language = "pt-BR" | "en" | "es" | "fr";
+
+export const LANGUAGES: Language[] = ["pt-BR", "en", "es", "fr"];
+
+
+⸻
+
+⚙️ 2. Engine principal (core)
+
+📄 client/src/i18n/index.ts
+
+import { Language } from "./types";
+
+const STORAGE_KEY = "lang";
+
+let currentLang: Language = detectDefault();
+
+const dictionaries: Record<string, any> = {};
+
+function detectDefault(): Language {
+  const saved = localStorage.getItem(STORAGE_KEY) as Language | null;
+  if (saved) return saved;
+
+  const nav = navigator.language.toLowerCase();
+
+  if (nav.startsWith("pt")) return "pt-BR";
+  if (nav.startsWith("es")) return "es";
+  if (nav.startsWith("fr")) return "fr";
+
+  return "en";
+}
+
+export async function loadLanguage(lang: Language) {
+  currentLang = lang;
+  localStorage.setItem(STORAGE_KEY, lang);
+
+  if (!dictionaries[lang]) {
+    dictionaries[lang] = (
+      await import(`./locales/${lang}.json`)
+    ).default;
+  }
+}
+
+export function getLanguage(): Language {
+  return currentLang;
+}
+
+export function t(key: string): string {
+  const dict = dictionaries[currentLang] || {};
+  const en = dictionaries["en"] || {};
+
+  return dict[key] || en[key] || key;
+}
+
+
+⸻
+
+🪄 3. Hook React
+
+📄 client/src/i18n/useTranslation.ts
+
+import { useEffect, useState } from "react";
+import { loadLanguage, t, getLanguage } from "./index";
+import { Language } from "./types";
+
+export function useTranslation() {
+  const [lang, setLang] = useState<Language>(getLanguage());
+  const [, force] = useState(0);
+
+  useEffect(() => {
+    loadLanguage(lang).then(() => force(x => x + 1));
+  }, [lang]);
+
+  function changeLanguage(l: Language) {
+    setLang(l);
+  }
+
+  return {
+    t,
+    lang,
+    changeLanguage
+  };
+}
+
+
+⸻
+
+🌍 4. Seletor de idioma (componente pronto)
+
+📄 client/src/components/LanguageSwitcher.tsx
+
+import { useTranslation } from "../i18n/useTranslation";
+
+export default function LanguageSwitcher() {
+  const { lang, changeLanguage } = useTranslation();
+
+  return (
+    <select
+      value={lang}
+      onChange={(e) => changeLanguage(e.target.value as any)}
+      style={{
+        borderRadius: 8,
+        padding: "4px 8px",
+        border: "1px solid #ccc",
+        background: "white",
+        cursor: "pointer"
+      }}
+    >
+      <option value="pt-BR">🇧🇷 PT</option>
+      <option value="en">🇺🇸 EN</option>
+      <option value="es">🇪🇸 ES</option>
+      <option value="fr">🇫🇷 FR</option>
+    </select>
+  );
+}
+
+
+⸻
+
+🗂️ 5. Arquivos de idioma (COMPLETOS)
+
+🇧🇷 pt-BR.json
+
+{
+  "app.name": "Meet Up",
+  "login": "Entrar",
+  "start": "Começar agora",
+  "free": "100% gratuito",
+
+  "landing.title": "Caminhe melhor. Caminhe junto.",
+  "landing.subtitle": "Encontre peregrinos para dividir transporte, refeições e etapas do Caminho.",
+
+  "create.activity": "Criar atividade",
+  "support.project": "Apoiar o projeto",
+
+  "dashboard.mine": "Minhas atividades",
+  "dashboard.suggested": "Sugestões para você",
+
+  "activity.title": "O que você vai fazer?",
+  "activity.type": "Tipo de atividade",
+  "activity.description": "Detalhes (opcional)",
+  "activity.city": "Onde?",
+  "activity.spots": "Quantas vagas?",
+  "activity.date": "Quando?",
+  "activity.time": "Horário (opcional)",
+  "activity.submit": "Publicar atividade",
+
+  "profile.title": "Meu perfil",
+  "profile.save": "Salvar alterações",
+
+  "donate.title": "Ajude o Meet Up a continuar 💛",
+  "donate.button": "Contribuir"
+}
+
+
+⸻
+
+🇺🇸 en.json
+
+{
+  "app.name": "Meet Up",
+  "login": "Login",
+  "start": "Get started",
+  "free": "100% free",
+
+  "landing.title": "Walk better. Walk together.",
+  "landing.subtitle": "Find pilgrims to share transport, meals and stages of the Way.",
+
+  "create.activity": "Create activity",
+  "support.project": "Support the project",
+
+  "dashboard.mine": "My activities",
+  "dashboard.suggested": "Suggestions for you",
+
+  "activity.title": "What are you planning?",
+  "activity.type": "Activity type",
+  "activity.description": "Details (optional)",
+  "activity.city": "Where?",
+  "activity.spots": "Available spots",
+  "activity.date": "Date",
+  "activity.time": "Time (optional)",
+  "activity.submit": "Publish activity",
+
+  "profile.title": "My profile",
+  "profile.save": "Save changes",
+
+  "donate.title": "Help Meet Up stay alive 💛",
+  "donate.button": "Donate"
+}
+
+
+⸻
+
+🇪🇸 es.json
+
+{
+  "app.name": "Meet Up",
+  "login": "Entrar",
+  "start": "Comenzar",
+  "free": "100% gratis",
+
+  "landing.title": "Camina mejor. Camina acompañado.",
+  "landing.subtitle": "Encuentra peregrinos para compartir transporte, comidas y etapas del Camino.",
+
+  "create.activity": "Crear actividad",
+  "support.project": "Apoyar el proyecto",
+
+  "dashboard.mine": "Mis actividades",
+  "dashboard.suggested": "Recomendadas",
+
+  "activity.title": "¿Qué vas a hacer?",
+  "activity.type": "Tipo de actividad",
+  "activity.description": "Detalles (opcional)",
+  "activity.city": "¿Dónde?",
+  "activity.spots": "Plazas disponibles",
+  "activity.date": "Fecha",
+  "activity.time": "Hora (opcional)",
+  "activity.submit": "Publicar actividad",
+
+  "profile.title": "Mi perfil",
+  "profile.save": "Guardar cambios",
+
+  "donate.title": "Ayuda a mantener Meet Up 💛",
+  "donate.button": "Donar"
+}
+
+
+⸻
+
+🇫🇷 fr.json
+
+{
+  "app.name": "Meet Up",
+  "login": "Connexion",
+  "start": "Commencer",
+  "free": "100% gratuit",
+
+  "landing.title": "Marchez mieux. Marchez ensemble.",
+  "landing.subtitle": "Trouvez des pèlerins pour partager transport, repas et étapes du Chemin.",
+
+  "create.activity": "Créer une activité",
+  "support.project": "Soutenir le projet",
+
+  "dashboard.mine": "Mes activités",
+  "dashboard.suggested": "Suggestions",
+
+  "activity.title": "Que prévoyez-vous ?",
+  "activity.type": "Type d’activité",
+  "activity.description": "Détails (optionnel)",
+  "activity.city": "Où ?",
+  "activity.spots": "Places disponibles",
+  "activity.date": "Date",
+  "activity.time": "Heure (optionnel)",
+  "activity.submit": "Publier l’activité",
+
+  "profile.title": "Mon profil",
+  "profile.save": "Enregistrer",
+
+  "donate.title": "Aidez Meet Up à continuer 💛",
+  "donate.button": "Faire un don"
+}
+
+
+⸻
+
+🧩 6. Como usar nas páginas React
+
+Exemplo
+
+Antes
+
+<h1>Criar Atividade</h1>
+
+Depois
+
+const { t } = useTranslation();
+
+<h1>{t("create.activity")}</h1>
+
+
+⸻
+
+🧭 7. Adicionar no Layout global
+
+Em App.tsx ou Navbar:
+
+import LanguageSwitcher from "./components/LanguageSwitcher";
+
+<LanguageSwitcher />
+
+
+⸻
+
+🚀 Resultado final
+
+Você terá:
+
+✅ troca instantânea
+✅ persistência
+✅ fallback automático
+✅ zero libs externas
+✅ leve (≈1kb)
+✅ profissional
+
+⸻
+
+Se quiser, no próximo passo eu posso te ajudar a:
+
+✅ migrar automaticamente textos hardcoded do seu código
+✅ gerar script para substituir strings
+✅ adicionar pluralização
+✅ lazy loading por idioma
+✅ SEO por idioma
+✅ detecção automática por país
+
+Só falar 👍

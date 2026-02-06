@@ -1,0 +1,246 @@
+Perfeito — agora com os prints + estrutura React (SPA) eu consigo fazer uma análise real de UX copy + i18n + ajustes baseada nas telas do seu app.
+
+Vou dividir em 3 partes bem práticas:
+
+✅ 1. Auditoria de textos (revisão + sugestões melhores)
+✅ 2. Textos finais prontos (PT-BR + EN + ES + FR)
+✅ 3. Prompt técnico específico para React + TypeScript (não mais HTML estático)
+
+⸻
+
+✅ 1. Auditoria rápida das telas (o que melhorar)
+
+🏠 Landing (Home)
+
+Atual
+
+Sua jornada no Caminho, com companhia
+Divida transportes, compartilhe refeições e encontre companheiros para cada etapa do Caminho de Santiago.
+Começar Agora
+Gratuito para sempre
+
+Problemas
+	•	frase longa
+	•	pouco emocional
+	•	CTA poderia ser mais claro
+	•	“companheiros” pode soar genérico
+
+Melhor versão
+
+👉 Mais curto + humano + direto
+
+Novo copy
+
+Caminhe melhor. Caminhe junto.
+Encontre peregrinos para dividir transporte, refeições e etapas do Caminho.
+Começar agora
+100% gratuito
+
+⸻
+
+📊 Dashboard
+
+Atual
+
+Olá, Teste!
+Buen Camino!
+Criar Atividade
+Apoiar
+Minhas Atividades
+Recomendadas
+
+Ajustes
+	•	misto PT + ES (“Buen Camino”) → padronizar idioma
+	•	“Apoiar” → melhor “Apoiar o projeto”
+	•	“Recomendadas” → melhor “Sugestões para você”
+
+Novo copy
+
+Olá, Teste! 👋
+Bom Caminho!
+
+Botões:
+	•	➕ Criar atividade
+	•	❤️ Apoiar o projeto
+
+Seções:
+	•	Minhas atividades
+	•	Sugestões para você
+
+⸻
+
+🧭 Criar Atividade
+
+Atual
+
+Título
+Tipo
+Descrição (opcional)
+Cidade
+Vagas
+Data
+Horário (opcional)
+Criar Atividade
+
+Ajustes
+	•	muito “formulário técnico”
+	•	pode ficar mais conversacional
+
+Novo copy
+	•	Título → O que você vai fazer?
+	•	Tipo → Tipo de atividade
+	•	Descrição → Detalhes (opcional)
+	•	Cidade → Onde?
+	•	Vagas → Quantas vagas?
+	•	Data → Quando?
+	•	Horário → Horário (opcional)
+	•	Botão → Publicar atividade
+
+⸻
+
+👤 Perfil
+
+Atual
+
+Meu Perfil
+Nome de Exibição
+Bio
+Início da Viagem / Fim da Viagem
+Cidades do Caminho
+Preferências
+Salvar Perfil
+Notificações Push
+
+Ajustes
+	•	“Nome de Exibição” → estranho
+	•	“Bio” → técnico
+	•	“Preferências (0-5)” → pouco claro
+
+Novo copy
+	•	Meu perfil
+	•	Como quer ser chamado?
+	•	Sobre você
+	•	Datas da sua jornada
+	•	Cidades do seu caminho
+	•	Interesses (0 = pouco | 5 = muito)
+	•	Botão: Salvar alterações
+	•	Push:
+Receba alertas quando surgirem atividades perto de você
+
+⸻
+
+❤️ Doação
+
+Atual
+
+Apoie o Projeto
+O Meet Up é mantido por voluntários. Sua doação nos ajuda a continuar.
+Faça uma Doação
+
+Melhor versão
+
+Ajude o Meet Up a continuar 💛
+Mantido por peregrinos, para peregrinos. Sua contribuição mantém o app gratuito.
+Contribuir
+
+⸻
+
+✅ 2. Textos prontos para i18n (copiar/colar)
+
+Agora já deixo arquivos JSON completos.
+
+🇧🇷 pt-BR.json
+
+{
+  "app.name": "Meet Up",
+  "nav.login": "Entrar",
+  "nav.profile": "Perfil",
+
+  "landing.title": "Caminhe melhor. Caminhe junto.",
+  "landing.subtitle": "Encontre peregrinos para dividir transporte, refeições e etapas do Caminho.",
+  "landing.cta": "Começar agora",
+  "landing.free": "100% gratuito",
+
+  "dashboard.greeting": "Olá",
+  "dashboard.wish": "Bom Caminho!",
+  "dashboard.create": "Criar atividade",
+  "dashboard.support": "Apoiar o projeto",
+  "dashboard.mine": "Minhas atividades",
+  "dashboard.suggested": "Sugestões para você",
+
+  "activity.create.title": "O que você vai fazer?",
+  "activity.create.type": "Tipo de atividade",
+  "activity.create.description": "Detalhes (opcional)",
+  "activity.create.city": "Onde?",
+  "activity.create.spots": "Quantas vagas?",
+  "activity.create.date": "Quando?",
+  "activity.create.time": "Horário (opcional)",
+  "activity.create.submit": "Publicar atividade",
+
+  "profile.title": "Meu perfil",
+  "profile.name": "Como quer ser chamado?",
+  "profile.bio": "Sobre você",
+  "profile.dates": "Datas da sua jornada",
+  "profile.cities": "Cidades do seu caminho",
+  "profile.preferences": "Interesses (0 = pouco | 5 = muito)",
+  "profile.save": "Salvar alterações",
+
+  "donate.title": "Ajude o Meet Up a continuar 💛",
+  "donate.subtitle": "Mantido por peregrinos, para peregrinos.",
+  "donate.button": "Contribuir"
+}
+
+
+⸻
+
+(Se quiser, eu já entrego também en/es/fr completos, mas para não deixar gigante aqui — me peça que mando os 3 arquivos prontos.)
+
+⸻
+
+✅ 3. Prompt correto para seu projeto React + TypeScript
+
+Agora que sabemos que é:
+
+React + Vite + TS + SPA
+
+Use ESTE prompt (adaptado para React):
+
+⸻
+
+🎯 Prompt para o Replit Agent (React)
+
+Faça auditoria completa de UX copy + i18n no projeto React + TypeScript.
+
+Tarefas:
+	1.	Garantir nome do app “Meet Up” em todo lugar.
+	2.	Revisar e melhorar TODOS os textos das páginas:
+	•	landing.tsx
+	•	dashboard.tsx
+	•	create-activity.tsx
+	•	activity-detail.tsx
+	•	activities.tsx
+	•	map-page.tsx
+	•	donate.tsx
+	•	profile.tsx
+	3.	Implementar i18n:
+	•	criar pasta client/src/i18n
+	•	usar JSONs (pt-BR, en, es, fr)
+	•	criar hook useTranslation()
+	•	substituir strings hardcoded por t("key")
+	4.	Adicionar seletor de idioma na navbar com persistência (localStorage).
+	5.	Revisar textos nas 4 línguas para soar naturais.
+	6.	Criar TESTING_NOTES.md com checklist manual.
+
+Mantenha código limpo, tipado e simples.
+
+⸻
+
+🚀 Próximo passo que recomendo
+
+Posso agora te entregar:
+✅ os 3 JSONs restantes (EN/ES/FR)
+✅ um hook React useTranslation.ts pronto
+✅ componente <LanguageSwitcher />
+✅ estrutura i18n completa plug-and-play
+
+Só falar: “quero o pacote i18n React completo”

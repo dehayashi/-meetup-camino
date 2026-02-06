@@ -26,6 +26,11 @@
   "landing_donate_desc": "Made by pilgrims, for pilgrims. Your support keeps the app free.",
   "landing_donate_btn": "Contribute",
   "landing_share_cta": "Share with fellow pilgrims",
+  "share_whatsapp": "WhatsApp",
+  "share_facebook": "Facebook",
+  "share_twitter": "X",
+  "share_copy": "Copy link",
+  "share_copied": "Link copied!",
   "landing_footer_copyright": "2026 Meet Up",
 
   "dashboard_welcome": "Buen Camino!",

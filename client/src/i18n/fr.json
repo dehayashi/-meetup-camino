@@ -26,6 +26,11 @@
   "landing_donate_desc": "Fait par des pèlerins, pour des pèlerins. Votre soutien maintient l'app gratuite.",
   "landing_donate_btn": "Contribuer",
   "landing_share_cta": "Partagez avec d'autres pèlerins",
+  "share_whatsapp": "WhatsApp",
+  "share_facebook": "Facebook",
+  "share_twitter": "X",
+  "share_copy": "Copier le lien",
+  "share_copied": "Lien copié !",
   "landing_footer_copyright": "2026 Meet Up",
 
   "dashboard_welcome": "Buen Camino !",

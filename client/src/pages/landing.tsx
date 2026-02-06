@@ -1,13 +1,40 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { MapPin, Users, MessageCircle, Heart, ArrowRight, Shield, Share2 } from "lucide-react";
+import { MapPin, Users, MessageCircle, Heart, ArrowRight, Shield, Share2, Copy, Check } from "lucide-react";
+import { SiWhatsapp, SiFacebook, SiX } from "react-icons/si";
 import { useT } from "@/lib/i18n";
 import { LanguageSelector } from "@/components/language-selector";
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 const heroImage = "/images/hero-camino.png";
 
 export default function Landing() {
   const { t } = useT();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const appUrl = window.location.origin;
+  const shareText = `${t("landing_hero_title")} - ${t("landing_hero_subtitle")}`;
+
+  const handleCopyLink = useCallback(() => {
+    navigator.clipboard.writeText(appUrl).then(() => {
+      setCopied(true);
+      toast({ title: t("share_copied") });
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [appUrl, t, toast]);
+
+  const shareWhatsApp = useCallback(() => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText + " " + appUrl)}`, "_blank");
+  }, [shareText, appUrl]);
+
+  const shareFacebook = useCallback(() => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(appUrl)}`, "_blank");
+  }, [appUrl]);
+
+  const shareTwitter = useCallback(() => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(appUrl)}`, "_blank");
+  }, [shareText, appUrl]);
 
   const features = useMemo(() => [
     {
@@ -77,10 +104,50 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="py-4 px-4 max-w-6xl mx-auto">
-        <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm">
-          <Share2 className="w-4 h-4" />
-          <span>{t("landing_share_cta")}</span>
+      <section className="py-6 px-4 max-w-6xl mx-auto">
+        <div className="flex flex-col items-center gap-3">
+          <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <Share2 className="w-4 h-4" />
+            <span>{t("landing_share_cta")}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={shareWhatsApp}
+              data-testid="button-share-whatsapp"
+            >
+              <SiWhatsapp className="w-4 h-4" />
+              <span className="ml-1.5">{t("share_whatsapp")}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={shareFacebook}
+              data-testid="button-share-facebook"
+            >
+              <SiFacebook className="w-4 h-4" />
+              <span className="ml-1.5">{t("share_facebook")}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={shareTwitter}
+              data-testid="button-share-twitter"
+            >
+              <SiX className="w-4 h-4" />
+              <span className="ml-1.5">{t("share_twitter")}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyLink}
+              data-testid="button-share-copy"
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              <span className="ml-1.5">{copied ? t("share_copied") : t("share_copy")}</span>
+            </Button>
+          </div>
         </div>
       </section>
 

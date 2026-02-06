@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -35,12 +35,10 @@ function AuthenticatedApp() {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
         <div className="max-w-lg mx-auto flex items-center justify-between gap-2 px-4 h-14">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground text-xs font-bold">MU</span>
-            </div>
-            <span className="font-serif font-bold text-base" data-testid="text-app-name">{t("app_name")}</span>
-          </div>
+          <Link href="/" className="flex items-center gap-2 no-underline" data-testid="link-home-logo">
+            <img src="/logo.png" alt="Meet Up" className="w-8 h-8 rounded-md" />
+            <span className="font-serif font-bold text-base text-foreground" data-testid="text-app-name">{t("app_name")}</span>
+          </Link>
           <div className="flex items-center gap-1">
             <LanguageSelector />
             <ThemeToggle />
@@ -72,9 +70,7 @@ function Router() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center animate-pulse">
-            <span className="text-primary-foreground text-sm font-bold">MU</span>
-          </div>
+          <img src="/logo.png" alt="Meet Up" className="w-10 h-10 rounded-md animate-pulse" />
           <p className="text-sm text-muted-foreground">{t("loading")}</p>
         </div>
       </div>

@@ -31,12 +31,10 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/80 border-b border-border">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-serif font-bold text-lg" data-testid="text-logo">{t("app_name")}</span>
-          </div>
+          <a href="/" className="flex items-center gap-2 no-underline" data-testid="link-home-logo">
+            <img src="/logo.png" alt="Meet Up" className="w-8 h-8 rounded-md" />
+            <span className="font-serif font-bold text-lg text-foreground" data-testid="text-logo">{t("app_name")}</span>
+          </a>
           <div className="flex items-center gap-2">
             <LanguageSelector />
             <a href="/api/login">

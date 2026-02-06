@@ -1,0 +1,216 @@
+Crie um aplicativo web full-stack chamado “Caminho Companion” para conectar peregrinos do Caminho de Santiago que desejam compartilhar atividades, transporte e refeições durante a viagem.
+
+O objetivo é um MVP simples, funcional, mobile-first e pronto para deploy no Replit.
+
+Construa TUDO automaticamente: frontend + backend + banco + autenticação + deploy.
+
+⸻
+
+🧱 STACK OBRIGATÓRIA
+
+Use:
+
+Backend:
+	•	Node.js
+	•	Express
+
+Frontend:
+	•	HTML + CSS + Vanilla JS (ou React simples se preferir)
+
+Banco:
+	•	SQLite ou Replit DB
+
+Mapas:
+	•	OpenStreetMap + Leaflet.js (gratuito)
+
+Autenticação:
+	•	JWT ou session login simples
+
+Pagamento:
+	•	Página de doação simulada com botão Stripe/PayPal (mock)
+
+⸻
+
+🎯 OBJETIVO DO APP
+
+Permitir que peregrinos:
+
+✅ Criem perfil
+✅ Informem cidade + data de viagem
+✅ Criem atividades (ex: dividir Uber, jantar, transporte)
+✅ Encontrem outras pessoas na mesma cidade/data
+✅ Entrem no grupo
+✅ Conversem por chat simples
+✅ Visualizem tudo no mapa
+✅ Façam doações voluntárias
+
+⸻
+
+✨ FUNCIONALIDADES OBRIGATÓRIAS
+
+👤 Usuários
+	•	cadastro/login
+	•	nome
+	•	idioma
+	•	nacionalidade
+	•	foto (opcional)
+	•	datas da viagem
+	•	cidades (Porto, Saint-Jean-Pied-de-Port, Santiago etc)
+	•	preferências:
+	•	transporte
+	•	refeições
+	•	caminhada
+	•	hospedagem
+
+⸻
+
+📅 Atividades
+
+Usuários podem criar:
+
+Campos:
+	•	título
+	•	descrição
+	•	tipo (transporte | refeição | passeio | hospedagem)
+	•	cidade
+	•	data
+	•	horário
+	•	vagas
+	•	ponto no mapa (lat/lng)
+
+Funções:
+	•	entrar no grupo
+	•	sair do grupo
+	•	ver participantes
+
+⸻
+
+🔎 Busca inteligente (sem IA externa)
+
+Implemente algoritmo local:
+
+Quando usuário abrir o app:
+	•	mostrar atividades na mesma cidade
+	•	mesma data (±1 dia)
+	•	mesmas preferências
+
+Ordenar por:
+	1.	proximidade
+	2.	data
+	3.	vagas disponíveis
+
+⸻
+
+🗺️ Mapa
+
+Tela com:
+	•	mapa Leaflet
+	•	pins das atividades
+	•	clique abre detalhes
+
+⸻
+
+💬 Chat simples
+
+Dentro de cada atividade:
+	•	mensagens em tempo real (polling ou websocket simples)
+
+⸻
+
+⭐ Avaliações
+
+Após atividade:
+	•	nota 1–5
+	•	comentário
+
+⸻
+
+❤️ Doações
+
+Página:
+	•	botão “Apoiar o projeto”
+	•	valor livre
+	•	simulação Stripe/PayPal
+	•	mensagem de agradecimento
+
+⸻
+
+🧩 TELAS NECESSÁRIAS
+
+Crie:
+	•	Home
+	•	Login/Register
+	•	Dashboard
+	•	Criar atividade
+	•	Lista de atividades
+	•	Mapa
+	•	Detalhe da atividade + chat
+	•	Perfil
+	•	Doações
+
+⸻
+
+🎨 DESIGN
+
+Estilo:
+	•	clean
+	•	peregrino/caminho
+	•	cores: azul, verde, bege
+	•	mobile-first
+	•	responsivo
+	•	ícones simples
+
+⸻
+
+🧠 ESTRUTURA DO PROJETO
+
+Organize:
+
+/server
+index.js
+routes/
+models/
+
+/public
+index.html
+css/
+js/
+
+/db
+
+⸻
+
+⚙️ EXTRAS IMPORTANTES
+
+Inclua:
+	•	dados seed de exemplo (usuários e atividades)
+	•	README com instruções
+	•	botão “Deploy”
+	•	comentários no código
+	•	código simples e didático
+
+⸻
+
+RESULTADO ESPERADO
+
+Ao finalizar, o app deve:
+	•	rodar com npm start
+	•	funcionar 100% dentro do Replit
+	•	permitir testar fluxo completo
+
+Cadastro → criar atividade → encontrar pessoas → chat → doação
+
+⸻
+
+Crie todo o código automaticamente.
+
+⸻
+
+✅ Depois de gerar
+
+Quando o Replit terminar:
+	1.	Clique Run
+	2.	Teste
+	3.	Deploy
+
+Pronto — você já terá o MVP funcionando.

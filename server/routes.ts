@@ -5,6 +5,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertPilgrimProfileSchema, insertActivitySchema, insertChatMessageSchema, insertRatingSchema, insertDonationSchema } from "@shared/schema";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 
 const profileBodySchema = insertPilgrimProfileSchema.omit({ userId: true });
 const activityBodySchema = insertActivitySchema.omit({ creatorId: true });
@@ -202,19 +203,83 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/donations", isAuthenticated, async (req: any, res) => {
+  app.get("/api/stripe/publishable-key", isAuthenticated, async (_req: any, res) => {
+    try {
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get Stripe key" });
+    }
+  });
+
+  app.post("/api/donations/checkout", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const parsed = donationBodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid donation data" });
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: 'Doação - Caminho Companion',
+              description: parsed.data.message || 'Apoio ao projeto Caminho Companion',
+            },
+            unit_amount: Math.round(parsed.data.amount * 100),
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${baseUrl}/donate?status=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/donate?status=cancelled`,
+        metadata: {
+          userId,
+          donationMessage: parsed.data.message || '',
+        },
+      });
+
       const donation = await storage.createDonation({
         userId,
         amount: parsed.data.amount,
         message: parsed.data.message || null,
+        stripeSessionId: session.id,
+        stripePaymentStatus: 'pending',
       });
-      res.json(donation);
+
+      res.json({ url: session.url, donationId: donation.id });
     } catch (error) {
-      res.status(500).json({ message: "Failed to process donation" });
+      console.error("Stripe checkout error:", error);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/donations/status/:sessionId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { sessionId } = req.params;
+      if (!sessionId || !sessionId.startsWith('cs_')) {
+        return res.status(400).json({ message: "Invalid session ID" });
+      }
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+      if (session.payment_status === 'paid') {
+        await storage.updateDonationStatus(sessionId, 'paid');
+      }
+
+      res.json({
+        status: session.payment_status,
+        amount: session.amount_total ? session.amount_total / 100 : 0,
+      });
+    } catch (error: any) {
+      if (error?.statusCode === 404 || error?.code === 'resource_missing') {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.status(500).json({ message: "Failed to check donation status" });
     }
   });
 

@@ -33,6 +33,7 @@ export interface IStorage {
   createRating(data: InsertRating): Promise<Rating>;
 
   createDonation(data: InsertDonation): Promise<Donation>;
+  updateDonationStatus(stripeSessionId: string, status: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -247,6 +248,12 @@ export class DatabaseStorage implements IStorage {
   async createDonation(data: InsertDonation): Promise<Donation> {
     const [donation] = await db.insert(donations).values(data).returning();
     return donation;
+  }
+
+  async updateDonationStatus(stripeSessionId: string, status: string): Promise<void> {
+    await db.update(donations)
+      .set({ stripePaymentStatus: status })
+      .where(eq(donations.stripeSessionId, stripeSessionId));
   }
 }
 

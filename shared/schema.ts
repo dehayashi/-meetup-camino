@@ -93,6 +93,8 @@ export const donations = pgTable("donations", {
   userId: varchar("user_id"),
   amount: real("amount").notNull(),
   message: text("message"),
+  stripeSessionId: text("stripe_session_id"),
+  stripePaymentStatus: text("stripe_payment_status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

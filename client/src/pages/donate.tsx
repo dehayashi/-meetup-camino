@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Heart, ArrowLeft, CreditCard, Check } from "lucide-react";
-import { Link } from "wouter";
+import { Heart, ArrowLeft, CreditCard, Check, Loader2, XCircle } from "lucide-react";
+import { Link, useSearch } from "wouter";
 
 const presetAmounts = [5, 10, 25, 50];
 
@@ -15,23 +15,50 @@ export default function Donate() {
   const { toast } = useToast();
   const [amount, setAmount] = useState<number>(10);
   const [message, setMessage] = useState("");
-  const [donated, setDonated] = useState(false);
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const status = params.get("status");
+  const sessionId = params.get("session_id");
 
-  const donateMutation = useMutation({
+  const [paymentResult, setPaymentResult] = useState<{
+    status: "success" | "cancelled" | null;
+    amount?: number;
+  }>({ status: null });
+
+  useEffect(() => {
+    if (status === "success" && sessionId) {
+      fetch(`/api/donations/status/${sessionId}`, { credentials: "include" })
+        .then((res) => res.json())
+        .then((data) => {
+          setPaymentResult({ status: "success", amount: data.amount });
+        })
+        .catch(() => {
+          setPaymentResult({ status: "success" });
+        });
+    } else if (status === "cancelled") {
+      setPaymentResult({ status: "cancelled" });
+    }
+  }, [status, sessionId]);
+
+  const checkoutMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/donations", { amount, message: message || null });
+      const res = await apiRequest("POST", "/api/donations/checkout", {
+        amount,
+        message: message || null,
+      });
       return res.json();
     },
-    onSuccess: () => {
-      setDonated(true);
-      toast({ title: "Obrigado pela doa\u00e7\u00e3o!" });
+    onSuccess: (data: { url: string }) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
     },
     onError: () => {
-      toast({ title: "Erro ao processar doa\u00e7\u00e3o", variant: "destructive" });
+      toast({ title: "Erro ao iniciar pagamento", variant: "destructive" });
     },
   });
 
-  if (donated) {
+  if (paymentResult.status === "success") {
     return (
       <div className="p-4 pb-20 max-w-lg mx-auto flex items-center justify-center min-h-[60vh]">
         <Card className="p-8 text-center w-full">
@@ -40,14 +67,38 @@ export default function Donate() {
           </div>
           <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-thank-you">Muito Obrigado!</h2>
           <p className="text-muted-foreground mb-1">
-            Sua doa\u00e7\u00e3o de <span className="font-semibold text-foreground">\u20ac{amount}</span> foi registrada.
+            Sua doa&ccedil;&atilde;o{paymentResult.amount ? ` de \u20ac${paymentResult.amount}` : ""} foi confirmada com sucesso.
           </p>
           <p className="text-sm text-muted-foreground mb-6">
-            Voc\u00ea est\u00e1 ajudando a manter o Caminho Companion gratuito para todos os peregrinos.
+            Voc&ecirc; est&aacute; ajudando a manter o Caminho Companion gratuito para todos os peregrinos.
           </p>
           <Link href="/">
-            <Button data-testid="button-back-home">Voltar ao In\u00edcio</Button>
+            <Button data-testid="button-back-home">Voltar ao In&iacute;cio</Button>
           </Link>
+        </Card>
+      </div>
+    );
+  }
+
+  if (paymentResult.status === "cancelled") {
+    return (
+      <div className="p-4 pb-20 max-w-lg mx-auto flex items-center justify-center min-h-[60vh]">
+        <Card className="p-8 text-center w-full">
+          <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-4">
+            <XCircle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+          </div>
+          <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-cancelled">Pagamento Cancelado</h2>
+          <p className="text-muted-foreground mb-6">
+            O pagamento foi cancelado. Voc&ecirc; pode tentar novamente quando quiser.
+          </p>
+          <div className="flex gap-2 justify-center flex-wrap">
+            <Button variant="outline" onClick={() => setPaymentResult({ status: null })} data-testid="button-try-again">
+              Tentar Novamente
+            </Button>
+            <Link href="/">
+              <Button data-testid="button-back-home-cancel">Voltar ao In&iacute;cio</Button>
+            </Link>
+          </div>
         </Card>
       </div>
     );
@@ -68,10 +119,10 @@ export default function Donate() {
         <div className="w-14 h-14 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
           <Heart className="w-7 h-7 text-destructive" />
         </div>
-        <h2 className="font-serif text-lg font-bold mb-2">Fa\u00e7a uma Doa\u00e7\u00e3o</h2>
+        <h2 className="font-serif text-lg font-bold mb-2">Fa&ccedil;a uma Doa&ccedil;&atilde;o</h2>
         <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-          O Caminho Companion \u00e9 gratuito e mantido por volunt\u00e1rios. 
-          Sua contribui\u00e7\u00e3o nos ajuda a manter o projeto funcionando.
+          O Caminho Companion &eacute; gratuito e mantido por volunt&aacute;rios.
+          Sua contribui&ccedil;&atilde;o nos ajuda a manter o projeto funcionando.
         </p>
 
         <div className="flex gap-2 justify-center mb-4 flex-wrap">
@@ -82,7 +133,7 @@ export default function Donate() {
               onClick={() => setAmount(preset)}
               data-testid={`amount-${preset}`}
             >
-              \u20ac{preset}
+              {"\u20ac"}{preset}
             </Button>
           ))}
         </div>
@@ -110,16 +161,25 @@ export default function Donate() {
         <Button
           className="w-full"
           size="lg"
-          disabled={!amount || amount <= 0 || donateMutation.isPending}
-          onClick={() => donateMutation.mutate()}
+          disabled={!amount || amount <= 0 || checkoutMutation.isPending}
+          onClick={() => checkoutMutation.mutate()}
           data-testid="button-donate"
         >
-          <CreditCard className="w-4 h-4 mr-2" />
-          {donateMutation.isPending ? "Processando..." : `Doar \u20ac${amount}`}
+          {checkoutMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Redirecionando...
+            </>
+          ) : (
+            <>
+              <CreditCard className="w-4 h-4 mr-2" />
+              Doar {"\u20ac"}{amount} via Stripe
+            </>
+          )}
         </Button>
 
         <p className="text-[10px] text-muted-foreground mt-3">
-          Simula\u00e7\u00e3o de pagamento. Nenhuma cobran\u00e7a real ser\u00e1 feita.
+          Pagamento seguro processado pelo Stripe. Voc&ecirc; ser&aacute; redirecionado para o checkout.
         </p>
       </Card>
     </div>

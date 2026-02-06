@@ -1,9 +1,16 @@
 # Caminho Companion
 
 ## Overview
-A full-stack web application that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL.
+A full-stack web application that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. Now a PWA with real Stripe payments.
 
 ## Recent Changes
+- 2026-02-06: PWA + Stripe Integration
+  - Progressive Web App (manifest.json, service worker, app icons)
+  - Installable on mobile devices (Android/iOS)
+  - Stripe Checkout for real donations (replaces mock page)
+  - Stripe webhook handler for payment confirmations
+  - Success/cancel payment flow pages
+  - Session-based donation tracking with stripeSessionId
 - 2026-02-06: Initial MVP built with all core features
   - Landing page with Camino hero image
   - User authentication via Replit Auth
@@ -13,7 +20,6 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
   - Interactive Leaflet map with activity pins
   - Chat within activities (polling-based)
   - Star ratings and reviews
-  - Mock donation page
   - Seed data with sample pilgrims and activities
   - Camino-themed design with blue/green/beige color palette
 
@@ -28,17 +34,25 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - **Database**: PostgreSQL with Drizzle ORM
 - **Auth**: Replit Auth (OpenID Connect)
 - **Maps**: Leaflet.js with OpenStreetMap tiles
+- **Payments**: Stripe Checkout (one-time donations in EUR)
 - **Routing**: wouter (frontend), Express (backend)
 - **State**: TanStack React Query
+- **PWA**: manifest.json + service worker (sw.js)
 
 ### Key Files
-- `shared/schema.ts` - All Drizzle schemas (pilgrimProfiles, activities, activityParticipants, chatMessages, ratings, donations)
+- `shared/schema.ts` - All Drizzle schemas
 - `server/routes.ts` - All API endpoints
 - `server/storage.ts` - Database operations (DatabaseStorage class)
+- `server/stripeClient.ts` - Stripe SDK client + StripeSync setup
+- `server/webhookHandlers.ts` - Stripe webhook processing
+- `server/index.ts` - Express setup with Stripe init + webhook before express.json()
 - `server/seed.ts` - Seed data for demo
 - `client/src/App.tsx` - Main app with routing and auth flow
+- `client/src/pages/donate.tsx` - Stripe donation checkout page
 - `client/src/pages/` - All page components
-- `client/src/components/` - Reusable components (ActivityCard, MapView, BottomNav, ThemeProvider)
+- `client/src/components/` - Reusable components
+- `client/public/manifest.json` - PWA manifest
+- `client/public/sw.js` - Service worker
 
 ### API Endpoints
 - `GET/POST /api/profile` - Pilgrim profile CRUD
@@ -50,7 +64,10 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - `POST /api/activities/:id/leave` - Leave activity
 - `GET/POST /api/activities/:id/messages` - Chat messages
 - `GET/POST /api/activities/:id/ratings` - Ratings
-- `POST /api/donations` - Record donation
+- `GET /api/stripe/publishable-key` - Stripe publishable key
+- `POST /api/donations/checkout` - Create Stripe Checkout session
+- `GET /api/donations/status/:sessionId` - Check payment status
+- `POST /api/stripe/webhook` - Stripe webhook (raw body, before express.json)
 
 ### Database Tables
 - `users` + `sessions` - Auth (managed by Replit Auth)
@@ -59,4 +76,5 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - `activity_participants` - Join table
 - `chat_messages` - Chat per activity
 - `ratings` - Star ratings per activity
-- `donations` - Donation records
+- `donations` - Donation records (with stripeSessionId, stripePaymentStatus)
+- `stripe.*` - Stripe sync tables (managed by stripe-replit-sync)

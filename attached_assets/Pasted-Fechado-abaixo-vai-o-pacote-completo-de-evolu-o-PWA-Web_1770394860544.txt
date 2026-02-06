@@ -1,0 +1,516 @@
+Fechado — abaixo vai o pacote completo de evolução (PWA + Web Push + Doações Stripe reais + estrutura para escalar), usando Replit DB.
+
+Vou assumir:
+	•	server/index.js (Express)
+	•	public/ para frontend
+	•	Replit DB via @replit/database
+
+Se seu projeto ainda não tem essa estrutura, você pode criar exatamente igual.
+
+⸻
+
+0) Dependências e Secrets (Replit)
+
+Instale no Replit (Shell)
+
+npm i @replit/database web-push stripe body-parser
+
+Secrets (Replit → Tools → Secrets)
+
+Crie:
+	•	BASE_URL = URL do seu app em produção (ex: https://caminho-companion.yourname.repl.co)
+	•	VAPID_PUBLIC_KEY = (vamos gerar já já)
+	•	VAPID_PRIVATE_KEY
+	•	STRIPE_SECRET_KEY
+	•	STRIPE_WEBHOOK_SECRET (depois que criar o webhook no Stripe)
+
+⸻
+
+1) PWA (Manifest + Service Worker + registro)
+
+1.1) public/manifest.json
+
+{
+  "name": "Caminho Companion",
+  "short_name": "Caminho",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f0e6",
+  "theme_color": "#1b6f6a",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
+
+1.2) public/index.html (no <head>)
+
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#1b6f6a" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+1.3) public/sw.js (cache + push)
+
+const CACHE_NAME = "caminho-v2";
+const ASSETS = [
+  "/",
+  "/index.html",
+  "/css/styles.css",
+  "/js/app.js",
+  "/manifest.json",
+  "/donate.html",
+  "/donate-success.html",
+  "/donate-cancel.html"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)));
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+});
+
+self.addEventListener("fetch", (event) => {
+  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+});
+
+// Push notifications
+self.addEventListener("push", (event) => {
+  let data = {};
+  try { data = event.data.json(); } catch {}
+  const title = data.title || "Caminho Companion";
+  const options = {
+    body: data.body || "Você tem uma novidade!",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png"
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+1.4) public/js/app.js (registre SW)
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try { await navigator.serviceWorker.register("/sw.js"); } catch {}
+  });
+}
+
+1.5) Ícones
+
+Crie:
+	•	public/icons/icon-192.png
+	•	public/icons/icon-512.png
+
+✅ PWA pronto.
+
+⸻
+
+2) Web Push (com Replit DB)
+
+2.1) Gere VAPID keys (uma vez)
+
+No Shell:
+
+node -e "const webpush=require('web-push'); console.log(webpush.generateVAPIDKeys());"
+
+Coloque nos Secrets:
+	•	VAPID_PUBLIC_KEY
+	•	VAPID_PRIVATE_KEY
+
+⸻
+
+2.2) Backend: server/index.js (Push + DB)
+
+Importante: abaixo eu já te dou um bloco completo (pronto pra colar), com:
+
+	•	Replit DB
+	•	web-push
+	•	Stripe checkout + webhook (mais abaixo)
+	•	endpoints de push
+
+Adicione no topo do server/index.js
+
+const express = require("express");
+const path = require("path");
+const bodyParser = require("body-parser");
+const Database = require("@replit/database");
+const webpush = require("web-push");
+const Stripe = require("stripe");
+
+const app = express();
+const db = new Database();
+
+// JSON normal (para quase tudo)
+app.use(bodyParser.json());
+
+// Static
+app.use(express.static(path.join(__dirname, "..", "public")));
+
+const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+
+// Web Push config
+webpush.setVapidDetails(
+  "mailto:contato@caminho-companion.com",
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
+
+// Stripe config
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+Helpers Replit DB (push)
+
+Cole abaixo:
+
+async function setJson(key, value) {
+  await db.set(key, JSON.stringify(value));
+}
+async function getJson(key) {
+  const v = await db.get(key);
+  return v ? JSON.parse(v) : null;
+}
+
+Endpoints Web Push
+
+// frontend pega a public key
+app.get("/api/push/vapidPublicKey", (req, res) => {
+  res.type("text/plain").send(process.env.VAPID_PUBLIC_KEY);
+});
+
+// salva subscription por userId
+app.post("/api/push/subscribe", async (req, res) => {
+  const { userId, subscription } = req.body;
+  if (!userId || !subscription) return res.status(400).json({ error: "userId e subscription são obrigatórios" });
+
+  await setJson(`push:sub:${userId}`, subscription);
+  res.json({ ok: true });
+});
+
+// envia push para 1 usuário (teste)
+app.post("/api/push/test", async (req, res) => {
+  const { userId, title, body } = req.body;
+  const subscription = await getJson(`push:sub:${userId}`);
+  if (!subscription) return res.status(404).json({ error: "Sem subscription para este userId" });
+
+  try {
+    await webpush.sendNotification(subscription, JSON.stringify({ title, body }));
+    res.json({ ok: true });
+  } catch (e) {
+    // Se subscription expirou, apague
+    if (String(e).includes("410") || String(e).includes("404")) {
+      await db.delete(`push:sub:${userId}`);
+    }
+    res.status(500).json({ error: "Falha ao enviar push", details: String(e) });
+  }
+});
+
+
+⸻
+
+2.3) Frontend: habilitar push (coloque em public/js/app.js)
+
+Cole estas funções:
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function enablePush(userId) {
+  if (!("serviceWorker" in navigator)) return alert("Sem suporte a Service Worker.");
+  const reg = await navigator.serviceWorker.ready;
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return alert("Permissão negada.");
+
+  const vapidPublicKey = await (await fetch("/api/push/vapidPublicKey")).text();
+
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
+  });
+
+  await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ userId, subscription: sub })
+  });
+
+  alert("Push ativado com sucesso!");
+}
+
+✅ Agora basta colocar um botão no HTML:
+
+<button onclick="enablePush(currentUserId)">Ativar notificações</button>
+
+currentUserId pode ser o ID do usuário logado (como você já tem login, use o mesmo id).
+
+⸻
+
+3) Doações reais com Stripe (Checkout + Webhook + páginas)
+
+3.1) Páginas prontas
+
+public/donate.html
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Doações - Caminho Companion</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="/css/styles.css" />
+</head>
+<body>
+  <main style="max-width:720px;margin:24px auto;padding:16px;">
+    <h1>Apoie o Caminho Companion ❤️</h1>
+    <p>Seu donativo mantém o app no ar e ajuda peregrinos a se conectarem com segurança.</p>
+
+    <label>Escolha um valor:</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0;">
+      <button onclick="donate(500)">R$ 5</button>
+      <button onclick="donate(1500)">R$ 15</button>
+      <button onclick="donate(3000)">R$ 30</button>
+      <button onclick="donate(5000)">R$ 50</button>
+    </div>
+
+    <label>Ou digite outro valor (R$):</label>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input id="custom" type="number" min="1" step="1" placeholder="Ex: 25" />
+      <button onclick="donateCustom()">Doar</button>
+    </div>
+
+    <p style="margin-top:16px;font-size:14px;opacity:.8">
+      Pagamento via Stripe (cartão, Apple Pay/Google Pay quando disponível).
+    </p>
+  </main>
+
+  <script>
+    async function donate(amountCents){
+      const r = await fetch("/api/donations/checkout", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ amountCents })
+      });
+      const data = await r.json();
+      if (!data.url) return alert("Falha ao iniciar pagamento.");
+      window.location.href = data.url;
+    }
+
+    function donateCustom(){
+      const v = Number(document.getElementById("custom").value);
+      if (!v || v < 1) return alert("Digite um valor válido.");
+      donate(v * 100);
+    }
+  </script>
+</body>
+</html>
+
+public/donate-success.html
+
+<!doctype html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Obrigado!</title></head>
+<body style="font-family:system-ui;max-width:720px;margin:24px auto;padding:16px;">
+  <h1>Obrigado pelo apoio ❤️</h1>
+  <p>Seu donativo foi confirmado. Bom Caminho!</p>
+  <a href="/">Voltar ao app</a>
+</body>
+</html>
+
+public/donate-cancel.html
+
+<!doctype html>
+<html>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Doação cancelada</title></head>
+<body style="font-family:system-ui;max-width:720px;margin:24px auto;padding:16px;">
+  <h1>Doação cancelada</h1>
+  <p>Sem problemas — você pode apoiar quando quiser.</p>
+  <a href="/donate.html">Tentar novamente</a> · <a href="/">Voltar ao app</a>
+</body>
+</html>
+
+
+⸻
+
+3.2) Backend: Checkout Session (cole no server/index.js)
+
+app.post("/api/donations/checkout", async (req, res) => {
+  const { amountCents } = req.body;
+  if (!amountCents || amountCents < 100) {
+    return res.status(400).json({ error: "Valor mínimo: R$ 1,00" });
+  }
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      line_items: [{
+        price_data: {
+          currency: "brl",
+          product_data: { name: "Doação - Caminho Companion" },
+          unit_amount: amountCents
+        },
+        quantity: 1
+      }],
+      success_url: `${BASE_URL}/donate-success.html`,
+      cancel_url: `${BASE_URL}/donate-cancel.html`
+    });
+
+    res.json({ url: session.url });
+  } catch (e) {
+    res.status(500).json({ error: "Falha ao criar checkout", details: String(e) });
+  }
+});
+
+
+⸻
+
+3.3) Webhook Stripe (confirmação real) — IMPORTANTE
+
+Stripe exige raw body nessa rota. Então, adicione isso ANTES do app.listen():
+
+app.post("/webhooks/stripe",
+  // raw parser só aqui:
+  bodyParser.raw({ type: "application/json" }),
+  async (req, res) => {
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        req.headers["stripe-signature"],
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+
+      // Salvar no Replit DB (registro simples)
+      const donation = {
+        id: session.id,
+        amount_total: session.amount_total,
+        currency: session.currency,
+        created: session.created,
+        payment_status: session.payment_status
+      };
+
+      // lista de doações
+      const list = (await getJson("donations:list")) || [];
+      list.unshift(donation);
+      await setJson("donations:list", list.slice(0, 500)); // mantém no máximo 500
+
+      // também salvar por id
+      await setJson(`donation:${session.id}`, donation);
+    }
+
+    res.json({ received: true });
+  }
+);
+
+Como criar o webhook no Stripe
+	1.	Stripe Dashboard → Developers → Webhooks
+	2.	Add endpoint → https://SEU_BASE_URL/webhooks/stripe
+	3.	Selecione evento:
+	•	checkout.session.completed
+	4.	Copie o signing secret (whsec_...) e coloque em STRIPE_WEBHOOK_SECRET
+
+✅ Pagamentos reais completos.
+
+⸻
+
+4) “Transformar em app mobile” (sem reescrever) — caminho certo com Replit
+
+Como você está no Replit (Android), o fluxo mais prático é:
+
+Opção A (mais simples): PWA instalável (já feito)
+	•	Android: “Adicionar à tela inicial”
+	•	Quase igual app nativo
+
+Opção B (app nativo): Capacitor (passo a passo)
+
+Você vai fazer fora do Replit (local no PC) ou em um ambiente dev:
+	1.	npm i @capacitor/core @capacitor/cli
+	2.	npx cap init
+	3.	npm i @capacitor/android
+	4.	npx cap add android
+	5.	npx cap sync
+	6.	npx cap open android
+	7.	Build no Android Studio
+
+Se você quiser, eu monto também o capacitor.config ideal (apontando para a URL do deploy) para virar “container” do seu site.
+
+⸻
+
+5) Escalar para produção (quando sair do MVP)
+
+Como você está em Replit DB, o “próximo degrau” é:
+
+5.1) Banco
+	•	Trocar Replit DB → Postgres (Neon/Supabase)
+	•	Motivos:
+	•	consultas por cidade/data (matching) ficam muito melhores
+	•	index
+	•	consistência
+	•	relatórios
+
+5.2) Notificações e jobs
+	•	Push baseado em eventos: quando criar atividade → notificar usuários compatíveis
+	•	Recomendado:
+	•	job scheduler (cron) + fila (Redis/Upstash)
+	•	ou pelo menos “trigger” no backend
+
+5.3) Infra recomendada (simples e robusta)
+	•	Backend: Render/Fly/Railway
+	•	DB: Neon/Supabase Postgres
+	•	Frontend: pode continuar no mesmo Express (ok)
+	•	CDN/WAF: Cloudflare
+
+⸻
+
+6) Bônus: “notificar matching” ao criar atividade (push automático)
+
+Quando você criar uma atividade, você faz:
+	•	identificar usuários compatíveis (mesma cidade, mesma data ± 1 dia, preferência)
+	•	enviar push
+
+Como você está no Replit DB (sem query rica), a estratégia é:
+	•	manter uma lista de usuários (users:list)
+	•	manter user:profile:${id}
+	•	filtrar em memória
+
+Se você me colar como está seu objeto de usuário e como salva atividades hoje, eu devolvo o bloco pronto que:
+✅ salva atividade
+✅ faz matching
+✅ envia push pra quem combinou
+
+⸻
+
+Checklist final de arquivos
+
+Crie/garanta estes arquivos:
+	•	public/manifest.json
+	•	public/sw.js
+	•	public/donate.html
+	•	public/donate-success.html
+	•	public/donate-cancel.html
+	•	public/js/app.js (com register SW + enablePush)
+	•	server/index.js (com endpoints de push + stripe checkout + webhook)
+
+⸻
+
+Se você me disser onde está o seu server/index.js atual (ou colar aqui as rotas principais de login/atividades), eu faço o ajuste “cirúrgico” para encaixar tudo sem quebrar o que você já tem, incluindo:
+	•	padrão de keys no Replit DB
+	•	userId do login
+	•	disparo automático de push ao criar atividade

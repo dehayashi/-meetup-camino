@@ -67,7 +67,7 @@ export default function Donate() {
           </div>
           <h2 className="font-serif text-2xl font-bold mb-2" data-testid="text-thank-you">Muito Obrigado!</h2>
           <p className="text-muted-foreground mb-1">
-            Sua doa&ccedil;&atilde;o{paymentResult.amount ? ` de \u20ac${paymentResult.amount}` : ""} foi confirmada com sucesso.
+            Sua doa&ccedil;&atilde;o{paymentResult.amount ? ` de R$${paymentResult.amount}` : ""} foi confirmada com sucesso.
           </p>
           <p className="text-sm text-muted-foreground mb-6">
             Voc&ecirc; est&aacute; ajudando a manter o Caminho Companion gratuito para todos os peregrinos.
@@ -133,7 +133,7 @@ export default function Donate() {
               onClick={() => setAmount(preset)}
               data-testid={`amount-${preset}`}
             >
-              {"\u20ac"}{preset}
+              R${preset}
             </Button>
           ))}
         </div>
@@ -147,7 +147,7 @@ export default function Donate() {
             className="text-center text-lg font-semibold"
             data-testid="input-custom-amount"
           />
-          <span className="text-xs text-muted-foreground">Valor em euros</span>
+          <span className="text-xs text-muted-foreground">Valor em reais (BRL)</span>
         </div>
 
         <Textarea
@@ -173,7 +173,7 @@ export default function Donate() {
           ) : (
             <>
               <CreditCard className="w-4 h-4 mr-2" />
-              Doar {"\u20ac"}{amount} via Stripe
+              Doar R${amount} via Stripe
             </>
           )}
         </Button>

@@ -1,13 +1,21 @@
 # Caminho Companion
 
 ## Overview
-A full-stack web application that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. Now a PWA with real Stripe payments.
+A full-stack web application that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments and Web Push notifications.
 
 ## Recent Changes
+- 2026-02-06: Web Push Notifications + BRL Currency
+  - Web Push notifications using web-push library + VAPID keys
+  - Push subscription management (subscribe/unsubscribe per user)
+  - Push notifications on new chat messages to activity participants
+  - Service worker v2 with push event listener + notificationclick handler
+  - Notification settings UI on profile page (enable/disable/test)
+  - Stripe donations switched from EUR to BRL (Brazilian Real)
+  - Donate page labels updated to R$ prefix
 - 2026-02-06: PWA + Stripe Integration
   - Progressive Web App (manifest.json, service worker, app icons)
   - Installable on mobile devices (Android/iOS)
-  - Stripe Checkout for real donations (replaces mock page)
+  - Stripe Checkout for real donations
   - Stripe webhook handler for payment confirmations
   - Success/cancel payment flow pages
   - Session-based donation tracking with stripeSessionId
@@ -34,25 +42,27 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - **Database**: PostgreSQL with Drizzle ORM
 - **Auth**: Replit Auth (OpenID Connect)
 - **Maps**: Leaflet.js with OpenStreetMap tiles
-- **Payments**: Stripe Checkout (one-time donations in EUR)
+- **Payments**: Stripe Checkout (one-time donations in BRL)
+- **Push**: Web Push (web-push library + VAPID keys)
 - **Routing**: wouter (frontend), Express (backend)
 - **State**: TanStack React Query
 - **PWA**: manifest.json + service worker (sw.js)
 
 ### Key Files
-- `shared/schema.ts` - All Drizzle schemas
-- `server/routes.ts` - All API endpoints
+- `shared/schema.ts` - All Drizzle schemas (including pushSubscriptions)
+- `server/routes.ts` - All API endpoints (including push notification routes)
 - `server/storage.ts` - Database operations (DatabaseStorage class)
 - `server/stripeClient.ts` - Stripe SDK client + StripeSync setup
 - `server/webhookHandlers.ts` - Stripe webhook processing
 - `server/index.ts` - Express setup with Stripe init + webhook before express.json()
 - `server/seed.ts` - Seed data for demo
 - `client/src/App.tsx` - Main app with routing and auth flow
-- `client/src/pages/donate.tsx` - Stripe donation checkout page
+- `client/src/pages/donate.tsx` - Stripe donation checkout page (BRL)
+- `client/src/pages/profile.tsx` - Profile + NotificationSettings component
 - `client/src/pages/` - All page components
 - `client/src/components/` - Reusable components
 - `client/public/manifest.json` - PWA manifest
-- `client/public/sw.js` - Service worker
+- `client/public/sw.js` - Service worker (caching + push notifications)
 
 ### API Endpoints
 - `GET/POST /api/profile` - Pilgrim profile CRUD
@@ -62,12 +72,17 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - `GET/POST /api/activities/:id` - Activity detail & create
 - `POST /api/activities/:id/join` - Join activity
 - `POST /api/activities/:id/leave` - Leave activity
-- `GET/POST /api/activities/:id/messages` - Chat messages
+- `GET/POST /api/activities/:id/messages` - Chat messages (+ push notify)
 - `GET/POST /api/activities/:id/ratings` - Ratings
 - `GET /api/stripe/publishable-key` - Stripe publishable key
-- `POST /api/donations/checkout` - Create Stripe Checkout session
+- `POST /api/donations/checkout` - Create Stripe Checkout session (BRL)
 - `GET /api/donations/status/:sessionId` - Check payment status
 - `POST /api/stripe/webhook` - Stripe webhook (raw body, before express.json)
+- `GET /api/push/vapid-key` - VAPID public key for push subscription
+- `POST /api/push/subscribe` - Save push subscription
+- `DELETE /api/push/subscribe` - Remove push subscription
+- `GET /api/push/status` - Check if user has push subscription
+- `POST /api/push/test` - Send test push notification
 
 ### Database Tables
 - `users` + `sessions` - Auth (managed by Replit Auth)
@@ -77,4 +92,5 @@ A full-stack web application that connects pilgrims on the Camino de Santiago, a
 - `chat_messages` - Chat per activity
 - `ratings` - Star ratings per activity
 - `donations` - Donation records (with stripeSessionId, stripePaymentStatus)
+- `push_subscriptions` - Web Push subscriptions (userId, endpoint, p256dh, auth)
 - `stripe.*` - Stripe sync tables (managed by stripe-replit-sync)

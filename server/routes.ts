@@ -6,6 +6,7 @@ import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertPilgrimProfileSchema, insertActivitySchema, insertChatMessageSchema, insertRatingSchema, insertDonationSchema } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import webpush from "web-push";
 
 const profileBodySchema = insertPilgrimProfileSchema.omit({ userId: true });
 const activityBodySchema = insertActivitySchema.omit({ creatorId: true });
@@ -165,6 +166,35 @@ export async function registerRoutes(
         userId,
         content: parsed.data.content,
       });
+
+      try {
+        if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) throw new Error("no vapid");
+        const act = await storage.getActivity(activityId);
+        const participants = await storage.getParticipants(activityId);
+        const senderProfile = await storage.getProfile(userId);
+        const senderName = senderProfile?.displayName || "Peregrino";
+        const allUserIds = [act?.creatorId, ...participants.map(p => p.userId)].filter(id => id && id !== userId);
+
+        for (const uid of allUserIds) {
+          if (!uid) continue;
+          const sub = await storage.getPushSubscription(uid);
+          if (!sub) continue;
+          try {
+            await webpush.sendNotification(
+              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+              JSON.stringify({
+                title: `${senderName} no ${act?.title || "atividade"}`,
+                body: parsed.data.content.substring(0, 100),
+              })
+            );
+          } catch (pushErr: any) {
+            if (String(pushErr).includes("410") || String(pushErr).includes("404")) {
+              await storage.deletePushSubscription(uid);
+            }
+          }
+        }
+      } catch (pushErr) {}
+
       res.json(msg);
     } catch (error) {
       res.status(500).json({ message: "Failed to send message" });
@@ -225,7 +255,7 @@ export async function registerRoutes(
         payment_method_types: ['card'],
         line_items: [{
           price_data: {
-            currency: 'eur',
+            currency: 'brl',
             product_data: {
               name: 'Doação - Caminho Companion',
               description: parsed.data.message || 'Apoio ao projeto Caminho Companion',
@@ -280,6 +310,96 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Session not found" });
       }
       res.status(500).json({ message: "Failed to check donation status" });
+    }
+  });
+
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    webpush.setVapidDetails(
+      "mailto:contato@caminho-companion.com",
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+  }
+
+  app.get("/api/push/vapid-key", (_req, res) => {
+    const key = process.env.VAPID_PUBLIC_KEY;
+    if (!key) return res.status(500).json({ message: "Push not configured" });
+    res.json({ publicKey: key });
+  });
+
+  app.post("/api/push/subscribe", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+        return res.status(503).json({ message: "Push notifications not configured" });
+      }
+      const userId = req.user.claims.sub;
+      const { endpoint, keys } = req.body;
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ message: "Invalid subscription data" });
+      }
+      await storage.savePushSubscription({
+        userId,
+        endpoint,
+        p256dh: keys.p256dh,
+        auth: keys.auth,
+      });
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Push subscribe error:", error);
+      res.status(500).json({ message: "Failed to save subscription" });
+    }
+  });
+
+  app.delete("/api/push/subscribe", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      await storage.deletePushSubscription(userId);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to remove subscription" });
+    }
+  });
+
+  app.get("/api/push/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const sub = await storage.getPushSubscription(userId);
+      res.json({ subscribed: !!sub });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check push status" });
+    }
+  });
+
+  app.post("/api/push/test", isAuthenticated, async (req: any, res) => {
+    try {
+      if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+        return res.status(503).json({ message: "Push notifications not configured" });
+      }
+      const userId = req.user.claims.sub;
+      const sub = await storage.getPushSubscription(userId);
+      if (!sub) return res.status(404).json({ message: "No subscription found" });
+
+      const pushSub = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth },
+      };
+
+      await webpush.sendNotification(
+        pushSub,
+        JSON.stringify({
+          title: "Caminho Companion",
+          body: "As notificações estão funcionando! Bom Caminho!",
+        })
+      );
+      res.json({ ok: true });
+    } catch (error: any) {
+      const uid = req.user.claims.sub;
+      if (String(error).includes("410") || String(error).includes("404")) {
+        await storage.deletePushSubscription(uid);
+        return res.status(410).json({ message: "Subscription expired" });
+      }
+      console.error("Push test error:", error);
+      res.status(500).json({ message: "Failed to send test notification" });
     }
   });
 

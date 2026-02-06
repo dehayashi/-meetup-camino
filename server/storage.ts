@@ -1,11 +1,12 @@
 import {
-  pilgrimProfiles, activities, activityParticipants, chatMessages, ratings, donations,
+  pilgrimProfiles, activities, activityParticipants, chatMessages, ratings, donations, pushSubscriptions,
   type PilgrimProfile, type InsertPilgrimProfile,
   type Activity, type InsertActivity,
   type ActivityParticipant,
   type ChatMessage, type InsertChatMessage,
   type Rating, type InsertRating,
   type Donation, type InsertDonation,
+  type PushSubscription, type InsertPushSubscription,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql, desc, asc } from "drizzle-orm";
@@ -34,6 +35,11 @@ export interface IStorage {
 
   createDonation(data: InsertDonation): Promise<Donation>;
   updateDonationStatus(stripeSessionId: string, status: string): Promise<void>;
+
+  savePushSubscription(data: InsertPushSubscription): Promise<PushSubscription>;
+  getPushSubscription(userId: string): Promise<PushSubscription | undefined>;
+  deletePushSubscription(userId: string): Promise<void>;
+  getAllPushSubscriptions(): Promise<PushSubscription[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -254,6 +260,25 @@ export class DatabaseStorage implements IStorage {
     await db.update(donations)
       .set({ stripePaymentStatus: status })
       .where(eq(donations.stripeSessionId, stripeSessionId));
+  }
+
+  async savePushSubscription(data: InsertPushSubscription): Promise<PushSubscription> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, data.userId));
+    const [sub] = await db.insert(pushSubscriptions).values(data).returning();
+    return sub;
+  }
+
+  async getPushSubscription(userId: string): Promise<PushSubscription | undefined> {
+    const [sub] = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+    return sub || undefined;
+  }
+
+  async deletePushSubscription(userId: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  }
+
+  async getAllPushSubscriptions(): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions);
   }
 }
 

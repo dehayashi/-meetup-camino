@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Save, X, Plus } from "lucide-react";
+import { LogOut, Save, X, Plus, Bell, BellOff, Loader2 } from "lucide-react";
 import { useState } from "react";
 import type { PilgrimProfile } from "@shared/schema";
 
@@ -336,6 +336,157 @@ export default function Profile() {
           </form>
         </Form>
       </Card>
+
+      <NotificationSettings />
     </div>
+  );
+}
+
+function NotificationSettings() {
+  const { toast } = useToast();
+  const [subscribing, setSubscribing] = useState(false);
+
+  const { data: pushStatus, isLoading: statusLoading } = useQuery<{ subscribed: boolean }>({
+    queryKey: ["/api/push/status"],
+  });
+
+  const [testSending, setTestSending] = useState(false);
+
+  async function urlBase64ToUint8Array(base64String: string) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const rawData = atob(base64);
+    return Uint8Array.from(Array.from(rawData).map((c) => c.charCodeAt(0)));
+  }
+
+  async function enablePush() {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      toast({ title: "Seu navegador não suporta notificações push", variant: "destructive" });
+      return;
+    }
+
+    setSubscribing(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        toast({ title: "Permissão de notificação negada", variant: "destructive" });
+        setSubscribing(false);
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      const vapidRes = await fetch("/api/push/vapid-key");
+      const { publicKey } = await vapidRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: await urlBase64ToUint8Array(publicKey),
+      });
+
+      const subJson = sub.toJSON();
+      await apiRequest("POST", "/api/push/subscribe", {
+        endpoint: subJson.endpoint,
+        keys: subJson.keys,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/push/status"] });
+      toast({ title: "Notificações ativadas!" });
+    } catch (error) {
+      console.error("Push subscribe error:", error);
+      toast({ title: "Erro ao ativar notificações", variant: "destructive" });
+    }
+    setSubscribing(false);
+  }
+
+  async function disablePush() {
+    setSubscribing(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+
+      await apiRequest("DELETE", "/api/push/subscribe");
+      queryClient.invalidateQueries({ queryKey: ["/api/push/status"] });
+      toast({ title: "Notificações desativadas" });
+    } catch (error) {
+      toast({ title: "Erro ao desativar notificações", variant: "destructive" });
+    }
+    setSubscribing(false);
+  }
+
+  async function sendTestPush() {
+    setTestSending(true);
+    try {
+      await apiRequest("POST", "/api/push/test");
+      toast({ title: "Notificação de teste enviada!" });
+    } catch (error) {
+      toast({ title: "Erro ao enviar notificação de teste", variant: "destructive" });
+    }
+    setTestSending(false);
+  }
+
+  const isSubscribed = pushStatus?.subscribed || false;
+
+  return (
+    <Card className="p-4">
+      <h3 className="font-semibold mb-3 flex items-center gap-1.5" data-testid="text-notifications-title">
+        <Bell className="w-4 h-4 text-primary" />
+        Notificações Push
+      </h3>
+      <p className="text-sm text-muted-foreground mb-4">
+        Receba alertas sobre novas atividades, mensagens e novidades do Caminho.
+      </p>
+
+      {statusLoading ? (
+        <Skeleton className="h-9 w-full" />
+      ) : isSubscribed ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400" data-testid="text-push-enabled">
+            <Bell className="w-4 h-4" />
+            Notificações ativadas
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={sendTestPush}
+              disabled={testSending}
+              data-testid="button-test-push"
+            >
+              {testSending ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Bell className="w-4 h-4 mr-1" />}
+              Testar
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={disablePush}
+              disabled={subscribing}
+              data-testid="button-disable-push"
+            >
+              <BellOff className="w-4 h-4 mr-1" />
+              Desativar
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button
+          onClick={enablePush}
+          disabled={subscribing}
+          data-testid="button-enable-push"
+        >
+          {subscribing ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              Ativando...
+            </>
+          ) : (
+            <>
+              <Bell className="w-4 h-4 mr-1" />
+              Ativar Notificações
+            </>
+          )}
+        </Button>
+      )}
+    </Card>
   );
 }

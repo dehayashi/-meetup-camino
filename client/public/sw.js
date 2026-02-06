@@ -1,4 +1,4 @@
-const CACHE_NAME = "caminho-companion-v1";
+const CACHE_NAME = "caminho-companion-v2";
 const STATIC_ASSETS = [
   "/",
   "/icons/icon-192.png",
@@ -65,5 +65,35 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => caches.match("/"))
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch (e) {}
+  const title = data.title || "Caminho Companion";
+  const options = {
+    body: data.body || "Você tem uma novidade!",
+    icon: "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.matchAll({ type: "window" }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow("/");
+      }
+    })
   );
 });

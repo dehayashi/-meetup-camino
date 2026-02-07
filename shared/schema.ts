@@ -28,6 +28,13 @@ export const pilgrimProfiles = pgTable("pilgrim_profiles", {
   acceptedPrivacyAt: timestamp("accepted_privacy_at"),
   termsVersion: text("terms_version"),
   privacyVersion: text("privacy_version"),
+  verificationStatus: text("verification_status").default("unverified"),
+  documentUrl: text("document_url"),
+  selfieUrl: text("selfie_url"),
+  verificationSubmittedAt: timestamp("verification_submitted_at"),
+  verificationReviewedAt: timestamp("verification_reviewed_at"),
+  verificationReviewedBy: varchar("verification_reviewed_by"),
+  verificationReason: text("verification_reason"),
 });
 
 export const pilgrimProfileRelations = relations(pilgrimProfiles, ({ many }) => ({

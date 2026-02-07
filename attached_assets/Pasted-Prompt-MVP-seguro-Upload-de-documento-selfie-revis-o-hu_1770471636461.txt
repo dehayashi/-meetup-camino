@@ -1,0 +1,60 @@
+Prompt (MVP seguro) — Upload de documento + selfie + revisão humana (sem reconhecimento facial)
+
+Cole no Replit Agent:
+
+Você é um(a) engenheiro(a) full-stack. Implemente no cadastro do app (React + TS + Node/Express + Replit DB) uma etapa opcional/obrigatória de verificação de identidade por revisão humana, sem reconhecimento facial automatizado.
+
+Requisitos
+	1.	No cadastro, adicionar etapa “Verificação de identidade”
+
+	•	Campos:
+	•	Upload do documento com foto (frente) — aceitar JPG/PNG/PDF
+	•	Upload de selfie do usuário segurando o documento (ou selfie + documento separado)
+	•	Checkbox de consentimento (LGPD): “Autorizo o uso destas imagens exclusivamente para verificação e segurança da comunidade”
+	•	Mostrar aviso: “Não publique dados sensíveis em áreas públicas. As imagens são privadas.”
+
+	2.	Armazenamento seguro
+
+	•	NÃO salvar imagens no Replit DB como base64.
+	•	Salvar em storage (preferência):
+	•	Cloudflare R2 / S3 / Supabase Storage
+	•	Se não for possível agora, salvar como arquivo privado no servidor temporariamente e registrar apenas o caminho (não ideal, mas MVP).
+	•	No DB, salvar apenas:
+	•	verificationStatus: “unverified” | “pending” | “verified” | “rejected”
+	•	documentUrl, selfieUrl (links privados)
+	•	submittedAt, reviewedAt, reviewedBy, rejectionReason
+
+	3.	Revisão/Admin
+
+	•	Criar tela Admin “Verificações”
+	•	Lista pendentes
+	•	Visualizar documento e selfie
+	•	Ações: Aprovar / Rejeitar
+	•	Campo obrigatório de motivo ao rejeitar
+
+	4.	Gate de acesso (opcional)
+
+	•	Se verificationStatus != verified, limitar algumas ações:
+	•	Ex: não permitir chat/entrar em atividades
+	•	Exibir banner: “Verifique sua identidade para liberar todos os recursos.”
+
+	5.	Segurança e privacidade
+
+	•	Proteger endpoints de download com autorização (apenas admin e o próprio usuário).
+	•	Sanitizar uploads, limitar tamanho (ex: 5MB), validar tipo MIME.
+	•	Adicionar retenção:
+	•	Após verificação, permitir excluir imagens automaticamente após X dias (configurável).
+
+	6.	Documentos legais
+
+	•	Atualizar Termos/Privacidade:
+	•	Finalidade: segurança e moderação
+	•	Retenção e exclusão
+	•	Consentimento explícito
+
+Entregáveis
+	•	UI completa no cadastro
+	•	Upload + storage
+	•	Painel de revisão admin
+	•	Status no perfil do usuário
+	•	SECURITY_NOTES.md atualizado com checklist

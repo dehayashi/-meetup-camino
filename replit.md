@@ -4,6 +4,21 @@
 A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-07: Invite-Only Access + Block/Report + Terms + Admin Panel + Security
+  - Invite-only access system: inviteCodes and inviteRedemptions tables, 8-char hex codes
+  - Admin auto-access via ADMIN_EMAIL environment variable
+  - InviteGate page: code validation + terms/privacy acceptance before app access
+  - Access flow: login → check status → invite gate or suspended screen or app
+  - Block/report system: userBlocks and userReports tables, 7 predefined report reasons
+  - UserActions component (report + block buttons), ReportModal, BlockConfirmDialog
+  - Comprehensive Terms of Use page (/terms) in 4 languages (PT-BR, EN, ES, FR)
+  - Admin panel (/admin) with invite management + report handling + user suspension
+  - Suspended page for banned users with reason display
+  - Security: helmet middleware, express-rate-limit (200/15min general, 20/15min auth)
+  - Input sanitization for user-generated text
+  - Schema: isAdmin, isSuspended, acceptedTermsAt, termsVersion, privacyVersion on profiles
+  - 15+ new API endpoints for invites, blocks, reports, admin, access-status
+  - 75+ new i18n keys across 4 languages
 - 2026-02-07: Nationality Flags + Spoken Languages
   - Nationality field changed from freeform text to Select dropdown with country codes (ISO 3166-1 alpha-2)
   - Country flags displayed via flagcdn.com CDN images

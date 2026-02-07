@@ -1,0 +1,167 @@
+Aqui vai um prompt único, completo e bem “cirúrgico” para colar no Replit Agent, cobrindo:
+
+✅ acesso apenas por convite
+✅ bloquear e denunciar usuário
+✅ Termos de Uso + Política de Privacidade (com proibições e segurança)
+✅ proteção de dados (medidas técnicas mínimas)
+
+⸻
+
+PROMPT para o Replit Agent (Convite + Segurança + Bloqueio/Denúncia + Termos/Privacidade)
+
+Você é um(a) engenheiro(a) full-stack responsável por segurança e compliance. No projeto atual (React + TypeScript SPA, backend em Node/Express, Replit DB), implemente:
+
+1) Acesso somente por convite (invite-only)
+
+Regras de acesso
+	•	Somente usuários com código de convite válido podem criar conta.
+	•	Login continua normal para usuários já cadastrados.
+	•	O convite deve ser exigido apenas no cadastro.
+	•	Convites podem ser:
+	•	de uso único (default)
+	•	opcionalmente com limite de usos (campo maxUses)
+	•	com expiração opcional (campo expiresAt)
+
+Implementação (obrigatória)
+	•	Criar um modelo de convite no Replit DB:
+	•	invite:CODE → { code, createdBy, createdAt, maxUses, uses, expiresAt, isDisabled }
+	•	Criar endpoints no backend:
+	•	POST /api/invites/validate (valida código)
+	•	POST /api/auth/register deve exigir inviteCode e consumir 1 uso
+	•	UI no frontend:
+	•	Tela de cadastro deve ter campo “Código de convite”
+	•	Mensagens claras:
+	•	“Código inválido”
+	•	“Convite expirado”
+	•	“Convite já utilizado”
+	•	Criar painel mínimo para gerar convites:
+	•	Apenas admin (ver item Admin)
+	•	POST /api/invites/create cria novos convites
+	•	Admin:
+	•	Primeiro admin: defina por env var ADMIN_EMAIL (apenas esse e-mail pode gerar convites).
+	•	Alternativa: flag isAdmin no perfil de usuário.
+
+2) Feature de bloquear e denunciar usuário
+
+Bloquear usuário
+	•	Usuário pode bloquear outro usuário:
+	•	Ocultar atividades do bloqueado
+	•	Impedir mensagens no chat (se houver)
+	•	Impedir que o bloqueado entre em atividades do bloqueador (onde aplicável)
+	•	Implementação em DB:
+	•	block:{blockerUserId}:{blockedUserId} → { createdAt }
+	•	ou lista blocks:{blockerUserId} → [blockedUserId...]
+
+Denunciar usuário
+	•	Usuário pode denunciar outro usuário com:
+	•	motivo (seleção + texto opcional)
+	•	referência: id da atividade e/ou id da mensagem (se existir)
+	•	Motivos mínimos (enum):
+	•	Assédio / comportamento inadequado
+	•	Linguagem ofensiva / termos impróprios
+	•	Ameaça / violência
+	•	Golpe / atitude suspeita
+	•	Venda/Oferta de itens ilegais
+	•	Conteúdo sexual / impróprio
+	•	Outros
+	•	Implementação em DB:
+	•	report:{reportId} → { reporterId, reportedId, reason, details, activityId?, messageId?, createdAt, status:"open"|"reviewing"|"closed" }
+	•	índice simples em lista: reports:list com IDs
+	•	UI no frontend:
+	•	Em perfil do usuário e dentro de atividade:
+	•	botão “Bloquear”
+	•	botão “Denunciar”
+	•	Modal de denúncia com motivos + campo detalhes
+	•	Confirmar envio com mensagem “Denúncia enviada. Obrigado por ajudar a manter a comunidade segura.”
+
+Moderação (admin)
+	•	Criar tela simples “Admin → Denúncias”
+	•	Lista denúncias abertas
+	•	Permitir marcar como “reviewing/closed”
+	•	Ação: “Suspender usuário”
+	•	Suspensão:
+	•	Usuário com flag isSuspended=true não pode logar/acessar APIs, recebe aviso:
+	•	“Conta suspensa por violação das regras. Contate o suporte.”
+
+3) Termos de Uso e Política de Privacidade
+
+Páginas obrigatórias
+	•	Criar rotas/páginas:
+	•	/terms (Termos de Uso)
+	•	/privacy (Política de Privacidade)
+	•	(opcional) /safety (Diretrizes de Comunidade)
+	•	No cadastro:
+	•	checkbox obrigatório: “Li e aceito os Termos e a Política de Privacidade”
+	•	armazenar:
+	•	acceptedTermsAt
+	•	acceptedPrivacyAt
+	•	termsVersion, privacyVersion
+
+Conteúdo mínimo obrigatório nos Termos (escrever texto claro em PT-BR e preparar estrutura i18n)
+
+Incluir proibição explícita de:
+	•	assédio, intimidação, perseguição
+	•	violência, ameaça, incitação a violência
+	•	discurso de ódio, termos inadequados/ofensivos
+	•	conteúdo sexual impróprio
+	•	atitudes suspeitas, golpes, pedidos de dinheiro “por fora”
+	•	venda/compra/oferta de itens ilegais e produtos proibidos
+	•	compartilhamento de dados pessoais de terceiros sem consentimento
+	•	spam e publicidade não autorizada
+
+Incluir:
+	•	regras de comportamento e convivência
+	•	direito de remover conteúdo e suspender contas
+	•	orientações de segurança (encontros em locais públicos, avisar alguém, etc.)
+	•	aviso: “Meet Up não é responsável por acordos entre usuários” (limitação de responsabilidade)
+
+Política de Privacidade (mínimo)
+
+Descrever:
+	•	Quais dados coletamos: e-mail, nome exibido, idioma, cidades, datas, atividades, mensagens (se houver), IP/logs
+	•	Para que usamos: funcionamento do app, segurança, moderação, prevenção a abuso
+	•	Base legal (LGPD) de forma simples: consentimento/execução do serviço/interesse legítimo em segurança
+	•	Compartilhamento: não vendemos dados; podemos compartilhar se exigido por lei
+	•	Retenção: por quanto tempo guardamos (ex: enquanto conta existir + logs por X dias)
+	•	Direitos do usuário: acesso/retificação/exclusão
+	•	Contato: e-mail de suporte (configurável via env var SUPPORT_EMAIL)
+	•	Segurança: criptografia em trânsito (HTTPS), hashing de senha, controle de acesso, minimização de dados
+
+4) Segurança e proteção de dados (medidas técnicas)
+
+Backend (obrigatório)
+	•	Garantir senhas com hashing forte (bcrypt/argon2)
+	•	Rate limiting para login e cadastro
+	•	Validação de inputs (evitar XSS e injection)
+	•	Sanitizar textos de chat/descrição
+	•	Helmet (headers de segurança)
+	•	CORS restrito
+	•	Logs mínimos sem expor dados sensíveis
+
+Privacidade por padrão
+	•	Não expor e-mail publicamente (apenas para o próprio usuário)
+	•	Nome exibido e bio são públicos, mas com opção “bio opcional”
+	•	Bloqueio deve esconder completamente conteúdo do bloqueado
+
+Auditoria e testes
+	•	Criar SECURITY_NOTES.md com checklist:
+	•	cadastro só com convite
+	•	convite expirado/inválido não cadastra
+	•	bloquear impede ver conteúdo/mensagens
+	•	denúncia cria registro
+	•	admin consegue ver denúncias
+	•	suspensão impede login
+	•	termos/política aparecem e são obrigatórios no cadastro
+
+Entregáveis finais
+	1.	Invite-only funcionando (backend + frontend + admin para convites)
+	2.	Bloquear/Denunciar funcionando (UI + DB + moderação admin)
+	3.	Páginas /terms e /privacy com textos completos (PT-BR) e estrutura para i18n
+	4.	Segurança mínima implementada (bcrypt, rate limit, helmet, validação)
+	5.	SECURITY_NOTES.md e atualização de TESTING_NOTES.md
+
+Implemente sem quebrar o fluxo atual do app e mantenha código limpo e tipado.
+
+⸻
+
+Se você quiser, eu também posso te entregar os textos prontos de Termos de Uso e Política de Privacidade (PT-BR) já formatados pra colar no app (e depois traduzir EN/ES/FR). Quer em um tom mais “formal jurídico” ou mais “simples e humano”?

@@ -1,5 +1,6 @@
 import {
   pilgrimProfiles, activities, activityParticipants, chatMessages, ratings, donations, pushSubscriptions,
+  inviteCodes, inviteRedemptions, userBlocks, userReports,
   type PilgrimProfile, type InsertPilgrimProfile,
   type Activity, type InsertActivity,
   type ActivityParticipant,
@@ -7,9 +8,12 @@ import {
   type Rating, type InsertRating,
   type Donation, type InsertDonation,
   type PushSubscription, type InsertPushSubscription,
+  type InviteCode, type InsertInviteCode,
+  type UserBlock, type InsertUserBlock,
+  type UserReport, type InsertUserReport,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, desc, asc } from "drizzle-orm";
+import { eq, and, sql, desc, asc, or, ne } from "drizzle-orm";
 
 export interface IStorage {
   getProfile(userId: string): Promise<PilgrimProfile | undefined>;
@@ -45,6 +49,27 @@ export interface IStorage {
   deleteActivity(activityId: number): Promise<void>;
 
   getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; nationality: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]>;
+
+  createInviteCode(data: InsertInviteCode): Promise<InviteCode>;
+  getInviteByCode(code: string): Promise<InviteCode | undefined>;
+  consumeInvite(code: string, userId: string): Promise<boolean>;
+  getAllInvites(): Promise<InviteCode[]>;
+  disableInvite(id: number): Promise<void>;
+  hasRedeemedAnyInvite(userId: string): Promise<boolean>;
+
+  blockUser(blockerId: string, blockedId: string): Promise<UserBlock>;
+  unblockUser(blockerId: string, blockedId: string): Promise<void>;
+  getBlockedUserIds(blockerId: string): Promise<string[]>;
+  isBlocked(blockerId: string, blockedId: string): Promise<boolean>;
+
+  createReport(data: InsertUserReport): Promise<UserReport>;
+  getAllReports(): Promise<(UserReport & { reporterName?: string; reportedName?: string })[]>;
+  updateReportStatus(id: number, status: string, adminNotes?: string): Promise<void>;
+
+  suspendUser(userId: string, reason: string): Promise<void>;
+  unsuspendUser(userId: string): Promise<void>;
+  setAdmin(userId: string, isAdmin: boolean): Promise<void>;
+  acceptTerms(userId: string, termsVersion: string, privacyVersion: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -133,7 +158,7 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getMyActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string })[]> {
+  async getMyActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]> {
     const created = await db.select().from(activities).where(eq(activities.creatorId, userId));
     const joined = await db.select({ activityId: activityParticipants.activityId })
       .from(activityParticipants).where(eq(activityParticipants.userId, userId));
@@ -143,7 +168,7 @@ export class DatabaseStorage implements IStorage {
     return all.filter(a => myIds.has(a.id));
   }
 
-  async getRecommendedActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string })[]> {
+  async getRecommendedActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]> {
     const profile = await this.getProfile(userId);
     const all = await this.getActivities();
 
@@ -338,6 +363,134 @@ export class DatabaseStorage implements IStorage {
       });
 
     return ranked;
+  }
+
+  async createInviteCode(data: InsertInviteCode): Promise<InviteCode> {
+    const [invite] = await db.insert(inviteCodes).values(data).returning();
+    return invite;
+  }
+
+  async getInviteByCode(code: string): Promise<InviteCode | undefined> {
+    const [invite] = await db.select().from(inviteCodes).where(eq(inviteCodes.code, code));
+    return invite || undefined;
+  }
+
+  async consumeInvite(code: string, userId: string): Promise<boolean> {
+    const invite = await this.getInviteByCode(code);
+    if (!invite) return false;
+    if (invite.isDisabled) return false;
+    if (invite.expiresAt && new Date() > invite.expiresAt) return false;
+    if (invite.maxUses && (invite.usedCount || 0) >= invite.maxUses) return false;
+
+    await db.update(inviteCodes)
+      .set({ usedCount: (invite.usedCount || 0) + 1 })
+      .where(eq(inviteCodes.id, invite.id));
+
+    await db.insert(inviteRedemptions).values({
+      inviteId: invite.id,
+      userId,
+    });
+
+    return true;
+  }
+
+  async getAllInvites(): Promise<InviteCode[]> {
+    return db.select().from(inviteCodes).orderBy(desc(inviteCodes.createdAt));
+  }
+
+  async disableInvite(id: number): Promise<void> {
+    await db.update(inviteCodes).set({ isDisabled: true }).where(eq(inviteCodes.id, id));
+  }
+
+  async hasRedeemedAnyInvite(userId: string): Promise<boolean> {
+    const [res] = await db.select().from(inviteRedemptions)
+      .where(eq(inviteRedemptions.userId, userId));
+    return !!res;
+  }
+
+  async blockUser(blockerId: string, blockedId: string): Promise<UserBlock> {
+    const existing = await this.isBlocked(blockerId, blockedId);
+    if (existing) {
+      const [block] = await db.select().from(userBlocks)
+        .where(and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId)));
+      return block;
+    }
+    const [block] = await db.insert(userBlocks).values({ blockerId, blockedId }).returning();
+    return block;
+  }
+
+  async unblockUser(blockerId: string, blockedId: string): Promise<void> {
+    await db.delete(userBlocks).where(
+      and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId))
+    );
+  }
+
+  async getBlockedUserIds(blockerId: string): Promise<string[]> {
+    const blocks = await db.select({ blockedId: userBlocks.blockedId })
+      .from(userBlocks).where(eq(userBlocks.blockerId, blockerId));
+    return blocks.map(b => b.blockedId);
+  }
+
+  async isBlocked(blockerId: string, blockedId: string): Promise<boolean> {
+    const [res] = await db.select().from(userBlocks)
+      .where(and(eq(userBlocks.blockerId, blockerId), eq(userBlocks.blockedId, blockedId)));
+    return !!res;
+  }
+
+  async createReport(data: InsertUserReport): Promise<UserReport> {
+    const [report] = await db.insert(userReports).values(data).returning();
+    return report;
+  }
+
+  async getAllReports(): Promise<(UserReport & { reporterName?: string; reportedName?: string })[]> {
+    const reports = await db.select().from(userReports).orderBy(desc(userReports.createdAt));
+    const result = [];
+    for (const r of reports) {
+      const reporter = await this.getProfile(r.reporterId);
+      const reported = await this.getProfile(r.reportedId);
+      result.push({
+        ...r,
+        reporterName: reporter?.displayName || "Unknown",
+        reportedName: reported?.displayName || "Unknown",
+      });
+    }
+    return result;
+  }
+
+  async updateReportStatus(id: number, status: string, adminNotes?: string): Promise<void> {
+    const set: any = { status };
+    if (adminNotes !== undefined) set.adminNotes = adminNotes;
+    if (status === "closed") set.resolvedAt = new Date();
+    await db.update(userReports).set(set).where(eq(userReports.id, id));
+  }
+
+  async suspendUser(userId: string, reason: string): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({ isSuspended: true, suspensionReason: reason })
+      .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async unsuspendUser(userId: string): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({ isSuspended: false, suspensionReason: null })
+      .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async setAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({ isAdmin })
+      .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async acceptTerms(userId: string, termsVersion: string, privacyVersion: string): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({
+        acceptedTermsAt: new Date(),
+        acceptedPrivacyAt: new Date(),
+        termsVersion,
+        privacyVersion,
+      })
+      .where(eq(pilgrimProfiles.userId, userId));
   }
 }
 

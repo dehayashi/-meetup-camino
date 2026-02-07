@@ -4,21 +4,52 @@ import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
-import { insertPilgrimProfileSchema, insertActivitySchema, insertChatMessageSchema, insertRatingSchema, insertDonationSchema } from "@shared/schema";
+import { insertPilgrimProfileSchema, insertActivitySchema, insertChatMessageSchema, insertRatingSchema, insertDonationSchema, REPORT_REASONS } from "@shared/schema";
 import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import webpush from "web-push";
+import crypto from "crypto";
 
 const profileBodySchema = insertPilgrimProfileSchema.omit({ userId: true });
 const activityBodySchema = insertActivitySchema.omit({ creatorId: true });
 const messageBodySchema = z.object({ content: z.string().min(1).max(2000) });
 const ratingBodySchema = z.object({ score: z.number().int().min(1).max(5), comment: z.string().max(500).nullable().optional() });
 const donationBodySchema = z.object({ amount: z.number().positive(), message: z.string().max(500).nullable().optional() });
+const inviteValidateSchema = z.object({ code: z.string().min(1).max(50) });
+const inviteCreateSchema = z.object({ maxUses: z.number().int().min(1).max(1000).optional(), expiresAt: z.string().optional() });
+const reportCreateSchema = z.object({
+  reportedId: z.string().min(1),
+  reason: z.enum(REPORT_REASONS),
+  details: z.string().max(2000).optional(),
+  activityId: z.number().int().optional(),
+  messageId: z.number().int().optional(),
+});
+const reportUpdateSchema = z.object({ status: z.enum(["open", "reviewing", "closed"]), adminNotes: z.string().max(2000).optional() });
+const suspendSchema = z.object({ userId: z.string().min(1), reason: z.string().min(1).max(500) });
+const acceptTermsSchema = z.object({ inviteCode: z.string().min(1), termsVersion: z.string(), privacyVersion: z.string() });
 
 async function checkMembership(activityId: number, userId: string): Promise<boolean> {
   const act = await storage.getActivity(activityId);
   if (!act) return false;
   if (act.creatorId === userId) return true;
   return storage.isParticipant(activityId, userId);
+}
+
+async function isAdminUser(req: any): Promise<boolean> {
+  const userId = req.user?.claims?.sub;
+  const email = req.user?.claims?.email;
+  if (!userId) return false;
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (adminEmail && email === adminEmail) return true;
+  const profile = await storage.getProfile(userId);
+  return profile?.isAdmin === true;
+}
+
+function sanitizeText(text: string): string {
+  return text
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/javascript:/gi, "")
+    .replace(/on\w+=/gi, "");
 }
 
 export async function registerRoutes(
@@ -451,6 +482,273 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching rankings:", error);
       res.status(500).json({ message: "Failed to fetch rankings" });
+    }
+  });
+
+  app.get("/api/access/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const email = req.user.claims.email;
+      const profile = await storage.getProfile(userId);
+
+      if (profile?.isSuspended) {
+        return res.json({
+          status: "suspended",
+          reason: profile.suspensionReason || "",
+        });
+      }
+
+      if (!profile) {
+        const hasRedeemed = await storage.hasRedeemedAnyInvite(userId);
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const isFirstAdmin = adminEmail && email === adminEmail;
+        return res.json({
+          status: hasRedeemed || isFirstAdmin ? "needs_profile" : "needs_invite",
+          isAdmin: !!isFirstAdmin,
+        });
+      }
+
+      if (!profile.acceptedTermsAt) {
+        const hasRedeemed = await storage.hasRedeemedAnyInvite(userId);
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const isFirstAdmin = adminEmail && email === adminEmail;
+        return res.json({
+          status: hasRedeemed || isFirstAdmin ? "needs_terms" : "needs_invite",
+          isAdmin: !!isFirstAdmin || profile.isAdmin,
+        });
+      }
+
+      const admin = await isAdminUser(req);
+      return res.json({
+        status: "active",
+        isAdmin: admin,
+        profile,
+      });
+    } catch (error) {
+      console.error("Error checking access status:", error);
+      res.status(500).json({ message: "Failed to check access status" });
+    }
+  });
+
+  app.post("/api/invites/validate", isAuthenticated, async (req: any, res) => {
+    try {
+      const parsed = inviteValidateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "invalid_code" });
+      const invite = await storage.getInviteByCode(parsed.data.code.trim().toUpperCase());
+      if (!invite) return res.status(400).json({ message: "invalid_code" });
+      if (invite.isDisabled) return res.status(400).json({ message: "invite_disabled" });
+      if (invite.expiresAt && new Date() > invite.expiresAt) return res.status(400).json({ message: "invite_expired" });
+      if (invite.maxUses && (invite.usedCount || 0) >= invite.maxUses) return res.status(400).json({ message: "invite_used" });
+      res.json({ valid: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to validate invite" });
+    }
+  });
+
+  app.post("/api/invites/redeem", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const parsed = acceptTermsSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+
+      const adminEmail = process.env.ADMIN_EMAIL;
+      const email = req.user.claims.email;
+      const isFirstAdmin = adminEmail && email === adminEmail;
+
+      if (!isFirstAdmin) {
+        const consumed = await storage.consumeInvite(parsed.data.inviteCode.trim().toUpperCase(), userId);
+        if (!consumed) return res.status(400).json({ message: "invalid_code" });
+      }
+
+      const existingProfile = await storage.getProfile(userId);
+      if (existingProfile) {
+        await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
+        if (isFirstAdmin && !existingProfile.isAdmin) {
+          await storage.setAdmin(userId, true);
+        }
+      } else {
+        const displayName = `${req.user.claims.first_name || ""} ${req.user.claims.last_name || ""}`.trim() || "Peregrino";
+        await storage.upsertProfile({
+          userId,
+          displayName,
+          language: "pt-BR",
+        });
+        await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
+        if (isFirstAdmin) {
+          await storage.setAdmin(userId, true);
+        }
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error redeeming invite:", error);
+      res.status(500).json({ message: "Failed to redeem invite" });
+    }
+  });
+
+  app.post("/api/invites/create", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+
+      const parsed = inviteCreateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid invite data" });
+
+      const code = crypto.randomBytes(4).toString("hex").toUpperCase();
+      const invite = await storage.createInviteCode({
+        code,
+        createdBy: req.user.claims.sub,
+        maxUses: parsed.data.maxUses || 1,
+        expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
+        isDisabled: false,
+      });
+
+      res.json(invite);
+    } catch (error) {
+      console.error("Error creating invite:", error);
+      res.status(500).json({ message: "Failed to create invite" });
+    }
+  });
+
+  app.get("/api/invites", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const invites = await storage.getAllInvites();
+      res.json(invites);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch invites" });
+    }
+  });
+
+  app.post("/api/invites/:id/disable", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid invite ID" });
+      await storage.disableInvite(id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to disable invite" });
+    }
+  });
+
+  app.post("/api/blocks", isAuthenticated, async (req: any, res) => {
+    try {
+      const blockerId = req.user.claims.sub;
+      const { blockedId } = req.body;
+      if (!blockedId || typeof blockedId !== "string") return res.status(400).json({ message: "Invalid user ID" });
+      if (blockerId === blockedId) return res.status(400).json({ message: "Cannot block yourself" });
+      const block = await storage.blockUser(blockerId, blockedId);
+      res.json(block);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  app.delete("/api/blocks/:blockedId", isAuthenticated, async (req: any, res) => {
+    try {
+      const blockerId = req.user.claims.sub;
+      const { blockedId } = req.params;
+      await storage.unblockUser(blockerId, blockedId);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unblock user" });
+    }
+  });
+
+  app.get("/api/blocks", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const blockedIds = await storage.getBlockedUserIds(userId);
+      res.json(blockedIds);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch blocks" });
+    }
+  });
+
+  app.get("/api/blocks/check/:userId", isAuthenticated, async (req: any, res) => {
+    try {
+      const blockerId = req.user.claims.sub;
+      const { userId } = req.params;
+      const blocked = await storage.isBlocked(blockerId, userId);
+      res.json({ blocked });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to check block status" });
+    }
+  });
+
+  app.post("/api/reports", isAuthenticated, async (req: any, res) => {
+    try {
+      const reporterId = req.user.claims.sub;
+      const parsed = reportCreateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid report data" });
+      if (reporterId === parsed.data.reportedId) return res.status(400).json({ message: "Cannot report yourself" });
+
+      const report = await storage.createReport({
+        reporterId,
+        reportedId: parsed.data.reportedId,
+        reason: parsed.data.reason,
+        details: parsed.data.details ? sanitizeText(parsed.data.details) : undefined,
+        activityId: parsed.data.activityId,
+        messageId: parsed.data.messageId,
+      });
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create report" });
+    }
+  });
+
+  app.get("/api/admin/reports", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const reports = await storage.getAllReports();
+      res.json(reports);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch reports" });
+    }
+  });
+
+  app.patch("/api/admin/reports/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid report ID" });
+      const parsed = reportUpdateSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid status data" });
+      await storage.updateReportStatus(id, parsed.data.status, parsed.data.adminNotes);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update report" });
+    }
+  });
+
+  app.post("/api/admin/suspend", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const parsed = suspendSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
+      await storage.suspendUser(parsed.data.userId, parsed.data.reason);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to suspend user" });
+    }
+  });
+
+  app.post("/api/admin/unsuspend", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const { userId } = req.body;
+      if (!userId) return res.status(400).json({ message: "User ID required" });
+      await storage.unsuspendUser(userId);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to unsuspend user" });
     }
   });
 

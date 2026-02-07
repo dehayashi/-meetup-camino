@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, real, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, real, serial, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -21,6 +21,13 @@ export const pilgrimProfiles = pgTable("pilgrim_profiles", {
   prefMeals: integer("pref_meals").default(0),
   prefHiking: integer("pref_hiking").default(0),
   prefLodging: integer("pref_lodging").default(0),
+  isAdmin: boolean("is_admin").default(false),
+  isSuspended: boolean("is_suspended").default(false),
+  suspensionReason: text("suspension_reason"),
+  acceptedTermsAt: timestamp("accepted_terms_at"),
+  acceptedPrivacyAt: timestamp("accepted_privacy_at"),
+  termsVersion: text("terms_version"),
+  privacyVersion: text("privacy_version"),
 });
 
 export const pilgrimProfileRelations = relations(pilgrimProfiles, ({ many }) => ({
@@ -111,6 +118,45 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const inviteCodes = pgTable("invite_codes", {
+  id: serial("id").primaryKey(),
+  code: varchar("code").notNull().unique(),
+  createdBy: varchar("created_by").notNull(),
+  maxUses: integer("max_uses").default(1),
+  usedCount: integer("used_count").default(0),
+  expiresAt: timestamp("expires_at"),
+  isDisabled: boolean("is_disabled").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const inviteRedemptions = pgTable("invite_redemptions", {
+  id: serial("id").primaryKey(),
+  inviteId: integer("invite_id").notNull(),
+  userId: varchar("user_id").notNull(),
+  redeemedAt: timestamp("redeemed_at").defaultNow(),
+});
+
+export const userBlocks = pgTable("user_blocks", {
+  id: serial("id").primaryKey(),
+  blockerId: varchar("blocker_id").notNull(),
+  blockedId: varchar("blocked_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userReports = pgTable("user_reports", {
+  id: serial("id").primaryKey(),
+  reporterId: varchar("reporter_id").notNull(),
+  reportedId: varchar("reported_id").notNull(),
+  reason: text("reason").notNull(),
+  details: text("details"),
+  activityId: integer("activity_id"),
+  messageId: integer("message_id"),
+  status: text("status").default("open"),
+  adminNotes: text("admin_notes"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
@@ -120,6 +166,10 @@ export const insertActivitySchema = createInsertSchema(activities).omit({ id: tr
 export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({ id: true, createdAt: true });
 export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
 export const insertDonationSchema = createInsertSchema(donations).omit({ id: true, createdAt: true });
+
+export const insertInviteCodeSchema = createInsertSchema(inviteCodes).omit({ id: true, usedCount: true, createdAt: true });
+export const insertUserBlockSchema = createInsertSchema(userBlocks).omit({ id: true, createdAt: true });
+export const insertUserReportSchema = createInsertSchema(userReports).omit({ id: true, status: true, adminNotes: true, resolvedAt: true, createdAt: true });
 
 export type PilgrimProfile = typeof pilgrimProfiles.$inferSelect;
 export type InsertPilgrimProfile = z.infer<typeof insertPilgrimProfileSchema>;
@@ -132,3 +182,21 @@ export type Rating = typeof ratings.$inferSelect;
 export type InsertRating = z.infer<typeof insertRatingSchema>;
 export type Donation = typeof donations.$inferSelect;
 export type InsertDonation = z.infer<typeof insertDonationSchema>;
+export type InviteCode = typeof inviteCodes.$inferSelect;
+export type InsertInviteCode = z.infer<typeof insertInviteCodeSchema>;
+export type UserBlock = typeof userBlocks.$inferSelect;
+export type InsertUserBlock = z.infer<typeof insertUserBlockSchema>;
+export type UserReport = typeof userReports.$inferSelect;
+export type InsertUserReport = z.infer<typeof insertUserReportSchema>;
+
+export const REPORT_REASONS = [
+  "harassment",
+  "offensive_language",
+  "threat_violence",
+  "scam_suspicious",
+  "illegal_items",
+  "sexual_content",
+  "other",
+] as const;
+
+export type ReportReason = typeof REPORT_REASONS[number];

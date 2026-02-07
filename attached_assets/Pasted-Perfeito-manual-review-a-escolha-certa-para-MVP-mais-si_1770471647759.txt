@@ -1,0 +1,260 @@
+Perfeito — manual review é a escolha certa para MVP:
+mais simples, barato, juridicamente mais seguro (LGPD), sem biometria/IA sensível, e ainda aumenta muito a confiança da comunidade.
+
+Abaixo está o PROMPT COMPLETO E PRONTO para colar no Replit Agent, já adaptado ao seu stack:
+
+✅ React + TypeScript SPA
+✅ Node/Express backend
+✅ Replit DB
+✅ Upload de documento + selfie
+✅ revisão humana (admin)
+✅ status de verificação
+✅ proteção de dados
+✅ consentimento LGPD
+✅ sem reconhecimento facial
+
+⸻
+
+🚀 PROMPT — Verificação de identidade por revisão manual (KYC leve)
+
+Cole no Replit Agent:
+
+⸻
+
+Você é um(a) engenheiro(a) full-stack.
+Implemente um sistema de verificação de identidade com revisão humana (manual review) no app React + TypeScript + Node/Express + Replit DB.
+
+⚠️ IMPORTANTE:
+	•	NÃO usar reconhecimento facial
+	•	NÃO comparar biometria
+	•	NÃO exigir que fotos sejam “idênticas”
+	•	Apenas coleta + revisão manual por admin
+
+Objetivo: aumentar segurança e confiança da comunidade.
+
+⸻
+
+1️⃣ Fluxo do usuário (Frontend)
+
+Cadastro / Perfil
+
+Adicionar seção:
+
+“Verificação de identidade”
+
+Campos obrigatórios:
+	•	Upload documento com foto (RG/passaporte/CNH)
+	•	Upload selfie segurando documento
+	•	Checkbox:
+“Autorizo o uso destas imagens exclusivamente para verificação de identidade e segurança da comunidade (LGPD)”
+
+Botão:
+	•	“Enviar para verificação”
+
+Mensagens:
+	•	pending → “Sua verificação está em análise”
+	•	approved → “Conta verificada ✅”
+	•	rejected → “Verificação não aprovada. Envie novas imagens.”
+
+⸻
+
+2️⃣ Modelo de dados (shared/schema.ts)
+
+Adicionar ao usuário:
+
+verificationStatus: "unverified" | "pending" | "verified" | "rejected"
+
+documentUrl?: string
+selfieUrl?: string
+
+verificationSubmittedAt?: Date
+verificationReviewedAt?: Date
+verificationReviewedBy?: string
+verificationReason?: string
+
+
+⸻
+
+3️⃣ Upload seguro
+
+Regras obrigatórias
+	•	aceitar apenas jpg/png/pdf
+	•	limite 5MB
+	•	validar MIME type
+	•	renomear arquivo (uuid)
+	•	NÃO salvar base64 no DB
+
+Armazenamento
+
+Implementar:
+	•	pasta privada /uploads/verification/
+OU
+	•	storage externo (S3/R2) se disponível
+
+Salvar apenas URL no DB.
+
+⸻
+
+4️⃣ Backend (server/routes.ts)
+
+Criar endpoints:
+
+Enviar verificação
+
+POST /api/verification/submit
+	•	upload arquivos
+	•	salvar URLs
+	•	status → pending
+
+Ver status
+
+GET /api/verification/status
+
+Admin listar pendentes
+
+GET /api/admin/verifications
+
+Admin aprovar
+
+POST /api/admin/verifications/:id/approve
+
+Admin rejeitar
+
+POST /api/admin/verifications/:id/reject
+	•	motivo obrigatório
+
+⸻
+
+5️⃣ Painel Admin
+
+Criar página:
+client/src/pages/admin-verifications.tsx
+
+Tabela:
+	•	Nome
+	•	Email
+	•	Data envio
+	•	Documento (preview)
+	•	Selfie (preview)
+	•	Botões:
+	•	Aprovar ✅
+	•	Rejeitar ❌
+
+Apenas usuários admin podem acessar.
+
+Admin definido por:
+	•	env var ADMIN_EMAIL
+OU
+	•	campo isAdmin no usuário
+
+⸻
+
+6️⃣ Regras de acesso
+
+Enquanto verificationStatus != “verified”:
+
+Bloquear:
+	•	chat
+	•	criação de atividade
+	•	entrar em grupos
+	•	enviar mensagens
+
+Mostrar banner:
+“Verifique sua identidade para liberar todos os recursos.”
+
+Permitir:
+	•	login
+	•	visualizar atividades
+
+⸻
+
+7️⃣ Segurança obrigatória
+
+Implementar:
+
+Backend:
+	•	bcrypt senha
+	•	rate limit login
+	•	helmet headers
+	•	validação inputs
+	•	autorização nos endpoints de download de imagens
+
+Privacidade:
+	•	imagens acessíveis apenas por:
+	•	próprio usuário
+	•	admin
+	•	não expor publicamente
+
+Retenção:
+	•	deletar imagens automaticamente após:
+	•	30 dias após aprovação
+OU
+	•	conta excluída
+
+⸻
+
+8️⃣ Termos e Privacidade
+
+Atualizar páginas:
+
+/terms
+/privacy
+
+Incluir:
+	•	finalidade da coleta
+	•	retenção
+	•	direito de exclusão
+	•	segurança aplicada
+	•	contato suporte
+	•	consentimento obrigatório
+
+No cadastro:
+checkbox obrigatório aceitar termos.
+
+⸻
+
+9️⃣ UX extra (opcional, mas recomendado)
+
+Adicionar:
+	•	badge “Conta verificada”
+	•	filtro “mostrar apenas verificados”
+	•	aviso educativo:
+“Envie fotos nítidas e legíveis”
+
+⸻
+
+🔟 Entregáveis
+
+Implementar:
+
+✅ UI upload no perfil
+✅ upload + storage seguro
+✅ revisão admin
+✅ bloqueio de recursos até verificação
+✅ termos + privacidade
+✅ security notes
+✅ funcionando end-to-end
+
+Código limpo, tipado, sem libs pesadas.
+
+⸻
+
+🎯 Recomendações extras (fora do prompt)
+
+Como arquiteto, eu recomendo:
+
+👉 depois do MVP:
+	•	migrar storage para S3/R2
+	•	adicionar logs de auditoria
+	•	criptografia em repouso
+	•	política de retenção automática
+
+⸻
+
+Se quiser, no próximo passo eu te entrego:
+✅ layout React pronto da página de verificação
+✅ componente <VerificationBadge />
+✅ middleware requireVerifiedUser()
+✅ código de upload Express pronto
+
+Só pedir 👍

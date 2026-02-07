@@ -1,0 +1,90 @@
+Aqui vai um prompt pronto (para colar no Replit Agent) para pré-definir lugares de saída/chegada no campo “Transporte”, com principais cidades e trajetos de alta demanda, incluindo exatamente os que você listou.
+
+⸻
+
+Prompt para o Replit Agent (Transporte com rotas pré-definidas)
+
+Você é um(a) engenheiro(a) full-stack trabalhando em um app React + TypeScript (SPA) com páginas como create-activity.tsx e modelo em shared/schema.ts.
+Implemente no fluxo de criação de atividade do tipo “Transporte” um campo estruturado com Saída e Chegada (pré-definidos), além de uma lista de rotas sugeridas.
+
+Objetivo
+
+Quando o usuário selecionar Tipo = Transporte, o formulário deve exibir:
+	1.	Campo “Rota” (pré-definida): um select com rotas populares (Alta Demanda)
+	2.	Campos “Saída” e “Chegada”: dois selects com cidades principais
+	3.	Se o usuário escolher uma rota pré-definida, preencher automaticamente Saída/Chegada.
+	4.	Se o usuário quiser, pode escolher Saída/Chegada manualmente e o sistema gera o nome do título sugerido.
+
+Rotas de alta demanda (obrigatórias)
+
+Criar lista fixa (com IDs e labels), incluindo:
+	•	Madrid → Pamplona
+	•	Pamplona → Saint-Jean-Pied-de-Port
+	•	Santiago de Compostela → Finisterra
+	•	Santiago de Compostela → Madrid
+	•	Lisboa → Porto
+	•	Porto → Tui
+	•	Barcelos → Tui
+	•	Tui → Santiago de Compostela
+
+Cidades principais (obrigatórias no select)
+
+Incluir pelo menos:
+	•	Lisboa
+	•	Porto
+	•	Barcelos
+	•	Tui
+	•	Santiago de Compostela
+	•	Finisterra
+	•	Madrid
+	•	Pamplona
+	•	Saint-Jean-Pied-de-Port
+
+E permitir fácil expansão (estrutura em constante/arquivo).
+
+⸻
+
+Requisitos técnicos
+
+UI/UX
+	•	Mostrar os campos “Saída” e “Chegada” somente quando Tipo = Transporte.
+	•	Rótulos e placeholders claros:
+	•	“Saída” (ex: “Selecione a cidade de saída”)
+	•	“Chegada” (ex: “Selecione a cidade de chegada”)
+	•	“Rota sugerida” (ex: “Escolha um trajeto comum (opcional)”)
+	•	Se Saída = Chegada, bloquear com erro: “Saída e chegada precisam ser diferentes.”
+
+Modelo de dados
+	•	Atualize shared/schema.ts para suportar:
+	•	transportFrom (string)
+	•	transportTo (string)
+	•	transportRouteId (string opcional)
+	•	Garanta compatibilidade com atividades antigas (campos opcionais).
+	•	Ajustar server/routes.ts para salvar e retornar esses campos.
+
+Lista de atividades / detalhe
+	•	Na listagem e no detalhe da atividade, se Tipo = Transporte e houver transportFrom/transportTo, exibir:
+	•	“Transporte: {Saída} → {Chegada}”
+	•	Se o título estiver vazio ou genérico, sugerir automaticamente:
+	•	“Dividir transporte {Saída} → {Chegada}”
+
+Internacionalização (se i18n estiver no projeto)
+	•	Adicionar chaves i18n para:
+	•	labels/erros/placeholder
+	•	nome de “Saída”, “Chegada”, “Rota sugerida”
+	•	As cidades podem ficar como nomes próprios (não traduzir), mas o texto “Transporte” e mensagens devem ser traduzidas.
+
+⸻
+
+Entregáveis
+	1.	Rotas e cidades pré-definidas em um arquivo central (ex: client/src/constants/routes.ts)
+	2.	Formulário de “Criar atividade” atualizado para mostrar e salvar Saída/Chegada
+	3.	Backend e schema atualizados
+	4.	Exibição na listagem e detalhe
+	5.	Testes manuais anotados em TESTING_NOTES.md:
+	•	criar transporte com rota sugerida
+	•	criar transporte manual (saída/chegada)
+	•	erro saída=chegada
+	•	verificar exibição na lista e no detalhe
+
+Implemente tudo com código limpo, tipado, e sem quebrar as outras atividades (Refeição, Passeio, Hospedagem).

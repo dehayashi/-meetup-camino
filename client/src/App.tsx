@@ -20,6 +20,7 @@ import MapPage from "@/pages/map-page";
 import Profile from "@/pages/profile";
 import Donate from "@/pages/donate";
 import PrivacyPolicy from "@/pages/privacy-policy";
+import Ranking from "@/pages/ranking";
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -55,6 +56,7 @@ function AuthenticatedApp() {
           <Route path="/map" component={MapPage} />
           <Route path="/profile" component={Profile} />
           <Route path="/donate" component={Donate} />
+          <Route path="/ranking" component={Ranking} />
           <Route path="/privacy" component={PrivacyPolicy} />
           <Route component={NotFound} />
         </Switch>

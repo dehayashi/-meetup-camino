@@ -49,6 +49,10 @@
   "activities_no_results": "No se encontraron actividades.",
 
   "filter_all": "Todos",
+  "filter_dates": "Fechas",
+  "filter_date_from": "Desde",
+  "filter_date_to": "Hasta",
+  "filter_date_clear": "Borrar fechas",
   "type_transport": "Transporte",
   "type_meal": "Comida",
   "type_hike": "Excursión",
@@ -124,6 +128,10 @@
   "profile_saved": "¡Perfil guardado!",
   "profile_save_error": "Error al guardar perfil",
   "profile_min_chars": "Mínimo {count} caracteres",
+  "profile_uploading_photo": "Subiendo foto...",
+  "profile_photo_saved": "Foto actualizada!",
+  "profile_photo_error": "Error al subir foto",
+  "profile_photo_too_large": "Imagen demasiado grande (máx 2MB)",
 
   "push_title": "Notificaciones",
   "push_description": "Recibe alertas cuando aparezcan actividades cerca de ti.",
@@ -169,5 +177,13 @@
   "lang_en": "English",
   "lang_fr": "Français",
 
-  "footer_privacy_policy": "Política de Privacidad"
+  "footer_privacy_policy": "Política de Privacidad",
+
+  "dashboard_ranking": "Ranking",
+
+  "ranking_title": "Ranking de Peregrinos",
+  "ranking_description": "Los peregrinos mejor valorados por sus actividades en el Camino.",
+  "ranking_ratings_count": "{count} valoraciones",
+  "ranking_activities_count": "{count} actividades",
+  "ranking_empty": "Ningún peregrino valorado todavía. Participa en actividades y valora."
 }

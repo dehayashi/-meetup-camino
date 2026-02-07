@@ -51,6 +51,31 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/profile/photo", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { photoData } = req.body;
+      if (!photoData || typeof photoData !== 'string') {
+        return res.status(400).json({ message: "No photo data provided" });
+      }
+      if (!photoData.startsWith('data:image/')) {
+        return res.status(400).json({ message: "Invalid image format" });
+      }
+      if (photoData.length > 2 * 1024 * 1024 * 1.37) {
+        return res.status(400).json({ message: "Image too large (max 2MB)" });
+      }
+      const profile = await storage.getProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found. Create a profile first." });
+      }
+      await storage.updateProfilePhoto(userId, photoData);
+      res.json({ photoUrl: photoData });
+    } catch (error) {
+      console.error("Error uploading photo:", error);
+      res.status(500).json({ message: "Failed to upload photo" });
+    }
+  });
+
   app.get("/api/activities", isAuthenticated, async (req: any, res) => {
     try {
       const acts = await storage.getActivities();
@@ -400,6 +425,16 @@ export async function registerRoutes(
       }
       console.error("Push test error:", error);
       res.status(500).json({ message: "Failed to send test notification" });
+    }
+  });
+
+  app.get("/api/rankings", isAuthenticated, async (_req: any, res) => {
+    try {
+      const rankings = await storage.getUserRankings();
+      res.json(rankings);
+    } catch (error) {
+      console.error("Error fetching rankings:", error);
+      res.status(500).json({ message: "Failed to fetch rankings" });
     }
   });
 

@@ -14,6 +14,7 @@ import { eq, and, sql, desc, asc } from "drizzle-orm";
 export interface IStorage {
   getProfile(userId: string): Promise<PilgrimProfile | undefined>;
   upsertProfile(data: InsertPilgrimProfile): Promise<PilgrimProfile>;
+  updateProfilePhoto(userId: string, photoUrl: string): Promise<void>;
 
   getActivities(): Promise<(Activity & { participantCount: number; creatorName: string })[]>;
   getActivity(id: number): Promise<Activity | undefined>;
@@ -40,6 +41,8 @@ export interface IStorage {
   getPushSubscription(userId: string): Promise<PushSubscription | undefined>;
   deletePushSubscription(userId: string): Promise<void>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
+
+  getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -71,6 +74,10 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return profile;
+  }
+
+  async updateProfilePhoto(userId: string, photoUrl: string): Promise<void> {
+    await db.update(pilgrimProfiles).set({ photoUrl }).where(eq(pilgrimProfiles.userId, userId));
   }
 
   async getActivities(): Promise<(Activity & { participantCount: number; creatorName: string })[]> {
@@ -279,6 +286,45 @@ export class DatabaseStorage implements IStorage {
 
   async getAllPushSubscriptions(): Promise<PushSubscription[]> {
     return db.select().from(pushSubscriptions);
+  }
+
+  async getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]> {
+    const allActivities = await db.select().from(activities);
+    const allRatings = await db.select().from(ratings);
+    const allProfiles = await db.select().from(pilgrimProfiles);
+
+    const creatorRatings: Record<string, number[]> = {};
+    const creatorActivityCount: Record<string, number> = {};
+
+    for (const act of allActivities) {
+      creatorActivityCount[act.creatorId] = (creatorActivityCount[act.creatorId] || 0) + 1;
+      const actRatings = allRatings.filter(r => r.activityId === act.id);
+      for (const r of actRatings) {
+        if (!creatorRatings[act.creatorId]) creatorRatings[act.creatorId] = [];
+        creatorRatings[act.creatorId].push(r.score);
+      }
+    }
+
+    const ranked = allProfiles
+      .map(p => {
+        const scores = creatorRatings[p.userId] || [];
+        const avgRating = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+        return {
+          userId: p.userId,
+          displayName: p.displayName,
+          photoUrl: p.photoUrl,
+          avgRating: Math.round(avgRating * 10) / 10,
+          totalRatings: scores.length,
+          activitiesCreated: creatorActivityCount[p.userId] || 0,
+        };
+      })
+      .filter(u => u.totalRatings > 0 || u.activitiesCreated > 0)
+      .sort((a, b) => {
+        if (b.avgRating !== a.avgRating) return b.avgRating - a.avgRating;
+        return b.totalRatings - a.totalRatings;
+      });
+
+    return ranked;
   }
 }
 

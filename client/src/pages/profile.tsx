@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Save, X, Plus, Bell, BellOff, Loader2 } from "lucide-react";
+import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import type { PilgrimProfile } from "@shared/schema";
@@ -57,6 +57,7 @@ export default function Profile() {
   const { toast } = useToast();
   const { t } = useT();
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [photoUploading, setPhotoUploading] = useState(false);
 
   const { data: profile, isLoading } = useQuery<PilgrimProfile | null>({
     queryKey: ["/api/profile"],
@@ -98,12 +99,40 @@ export default function Profile() {
     }
   }, [profile, user]);
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: t("profile_photo_too_large"), variant: "destructive" });
+      return;
+    }
+    setPhotoUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const photoData = reader.result as string;
+          await apiRequest("POST", "/api/profile/photo", { photoData });
+          queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+          toast({ title: t("profile_photo_saved") });
+        } catch {
+          toast({ title: t("profile_photo_error"), variant: "destructive" });
+        }
+        setPhotoUploading(false);
+      };
+      reader.readAsDataURL(file);
+    } catch {
+      toast({ title: t("profile_photo_error"), variant: "destructive" });
+      setPhotoUploading(false);
+    }
+  }
+
   const saveMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
       const res = await apiRequest("POST", "/api/profile", {
         ...data,
         cities: selectedCities,
-        photoUrl: user?.profileImageUrl || "",
+        photoUrl: profile?.photoUrl || user?.profileImageUrl || "",
       });
       return res.json();
     },
@@ -142,15 +171,33 @@ export default function Profile() {
       </div>
 
       <div className="flex items-center gap-3 mb-2">
-        <Avatar className="w-14 h-14">
-          <AvatarImage src={user?.profileImageUrl || ""} />
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
-            {user?.firstName?.charAt(0) || "P"}
-          </AvatarFallback>
-        </Avatar>
+        <div className="relative">
+          <Avatar className="w-14 h-14">
+            <AvatarImage src={profile?.photoUrl || user?.profileImageUrl || ""} />
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+              {user?.firstName?.charAt(0) || "P"}
+            </AvatarFallback>
+          </Avatar>
+          <label
+            htmlFor="photo-upload"
+            className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground rounded-full p-1 cursor-pointer"
+            data-testid="button-upload-photo"
+          >
+            <Camera className="w-3.5 h-3.5" />
+          </label>
+          <input
+            id="photo-upload"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoUpload}
+            data-testid="input-photo-upload"
+          />
+        </div>
         <div>
           <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
+          {photoUploading && <p className="text-xs text-muted-foreground">{t("profile_uploading_photo")}</p>}
         </div>
       </div>
 

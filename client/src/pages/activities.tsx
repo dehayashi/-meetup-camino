@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { Search, Filter, Car, UtensilsCrossed, Mountain, BedDouble } from "lucide-react";
+import { Search, Filter, Car, UtensilsCrossed, Mountain, BedDouble, CalendarRange, X as XIcon } from "lucide-react";
 import { useLocation } from "wouter";
 import { useT } from "@/lib/i18n";
 import type { Activity } from "@shared/schema";
@@ -14,6 +14,8 @@ export default function Activities() {
   const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const { t } = useT();
 
   const typeFilters = useMemo(() => [
@@ -34,7 +36,8 @@ export default function Activities() {
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.city.toLowerCase().includes(search.toLowerCase());
     const matchType = !typeFilter || a.type === typeFilter;
-    return matchSearch && matchType;
+    const matchDate = (!dateFrom || a.date >= dateFrom) && (!dateTo || a.date <= dateTo);
+    return matchSearch && matchType && matchDate;
   });
 
   return (
@@ -70,6 +73,36 @@ export default function Activities() {
             </Button>
           );
         })}
+      </div>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <CalendarRange className="w-4 h-4 text-muted-foreground shrink-0" />
+        <Input
+          type="date"
+          value={dateFrom}
+          onChange={(e) => setDateFrom(e.target.value)}
+          className="flex-1 min-w-[130px]"
+          placeholder={t("filter_date_from")}
+          data-testid="input-date-from"
+        />
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => setDateTo(e.target.value)}
+          className="flex-1 min-w-[130px]"
+          placeholder={t("filter_date_to")}
+          data-testid="input-date-to"
+        />
+        {(dateFrom || dateTo) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => { setDateFrom(""); setDateTo(""); }}
+            data-testid="button-clear-dates"
+          >
+            <XIcon className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
       {isLoading ? (

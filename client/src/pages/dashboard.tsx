@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MapPin, Calendar, Plus, TrendingUp, Heart } from "lucide-react";
+import { MapPin, Calendar, Plus, TrendingUp, Heart, Trophy } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useT } from "@/lib/i18n";
 import type { Activity, PilgrimProfile } from "@shared/schema";
@@ -90,11 +90,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Link href="/create">
           <Card className="p-4 hover-elevate overflow-visible cursor-pointer">
             <Plus className="w-5 h-5 text-primary mb-2" />
             <span className="text-sm font-medium">{t("dashboard_create_activity")}</span>
+          </Card>
+        </Link>
+        <Link href="/ranking">
+          <Card className="p-4 hover-elevate overflow-visible cursor-pointer" data-testid="link-ranking">
+            <Trophy className="w-5 h-5 text-yellow-500 mb-2" />
+            <span className="text-sm font-medium">{t("dashboard_ranking")}</span>
           </Card>
         </Link>
         <Link href="/donate">

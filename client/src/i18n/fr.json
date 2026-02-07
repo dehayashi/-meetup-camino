@@ -49,6 +49,10 @@
   "activities_no_results": "Aucune activité trouvée.",
 
   "filter_all": "Tous",
+  "filter_dates": "Dates",
+  "filter_date_from": "Du",
+  "filter_date_to": "Au",
+  "filter_date_clear": "Effacer les dates",
   "type_transport": "Transport",
   "type_meal": "Repas",
   "type_hike": "Randonnée",
@@ -124,6 +128,10 @@
   "profile_saved": "Profil enregistré !",
   "profile_save_error": "Erreur lors de l'enregistrement",
   "profile_min_chars": "Minimum {count} caractères",
+  "profile_uploading_photo": "Envoi de la photo...",
+  "profile_photo_saved": "Photo mise à jour !",
+  "profile_photo_error": "Erreur lors de l'envoi de la photo",
+  "profile_photo_too_large": "Image trop grande (max 2 Mo)",
 
   "push_title": "Notifications",
   "push_description": "Recevez des alertes quand des activités proches de vous sont publiées.",
@@ -169,5 +177,13 @@
   "lang_en": "English",
   "lang_fr": "Français",
 
-  "footer_privacy_policy": "Politique de Confidentialité"
+  "footer_privacy_policy": "Politique de Confidentialité",
+
+  "dashboard_ranking": "Classement",
+
+  "ranking_title": "Classement des Pèlerins",
+  "ranking_description": "Les pèlerins les mieux notés d'après les avis sur leurs activités.",
+  "ranking_ratings_count": "{count} avis",
+  "ranking_activities_count": "{count} activités",
+  "ranking_empty": "Aucun pèlerin noté pour le moment. Participez et laissez des avis !"
 }

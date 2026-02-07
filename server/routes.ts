@@ -258,6 +258,22 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/activities/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) return res.status(400).json({ message: "Invalid activity ID" });
+      const act = await storage.getActivity(id);
+      if (!act) return res.status(404).json({ message: "Activity not found" });
+      if (act.creatorId !== userId) return res.status(403).json({ message: "Only the creator can delete this activity" });
+      await storage.deleteActivity(id);
+      res.json({ message: "Activity deleted" });
+    } catch (error) {
+      console.error("Error deleting activity:", error);
+      res.status(500).json({ message: "Failed to delete activity" });
+    }
+  });
+
   app.get("/api/stripe/publishable-key", isAuthenticated, async (_req: any, res) => {
     try {
       const key = await getStripePublishableKey();

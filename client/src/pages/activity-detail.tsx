@@ -13,9 +13,22 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useT } from "@/lib/i18n";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   ArrowLeft, MapPin, Calendar, Clock, Users, Send, Star,
   Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus, Copy, ArrowRight,
+  Trash2, Share2,
 } from "lucide-react";
+import { SiWhatsapp, SiFacebook, SiX } from "react-icons/si";
 import type { Activity, PilgrimProfile, ChatMessage, Rating } from "@shared/schema";
 
 const typeIcons: Record<string, typeof Car> = {
@@ -109,8 +122,41 @@ export default function ActivityDetail() {
     onError: () => toast({ title: t("toast_rating_error"), variant: "destructive" }),
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/activities/${id}`),
+    onSuccess: () => {
+      toast({ title: t("delete_success") });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      setLocation("/activities");
+    },
+    onError: () => toast({ title: t("delete_error"), variant: "destructive" }),
+  });
+
+  const activityUrl = typeof window !== "undefined" ? window.location.href : "";
+  const shareText = (a: ActivityDetail) => {
+    return t("share_activity_text", { title: a.title, city: a.city, date: a.date });
+  };
+
+  const shareWhatsApp = () => {
+    if (!activity) return;
+    const text = encodeURIComponent(`${shareText(activity)}\n${activityUrl}`);
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  const shareFacebook = () => {
+    const url = encodeURIComponent(activityUrl);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, "_blank");
+  };
+
+  const shareTwitter = () => {
+    if (!activity) return;
+    const text = encodeURIComponent(shareText(activity));
+    const url = encodeURIComponent(activityUrl);
+    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, "_blank");
+  };
+
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(activityUrl);
     toast({ title: t("activity_link_copied") });
   };
 
@@ -154,6 +200,32 @@ export default function ActivityDetail() {
         <Button variant="ghost" size="icon" onClick={copyLink} data-testid="button-copy-link">
           <Copy className="w-4 h-4" />
         </Button>
+        {activity.isCreator && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" data-testid="button-delete-activity">
+                <Trash2 className="w-4 h-4 text-destructive" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t("delete_confirm_title")}</AlertDialogTitle>
+                <AlertDialogDescription>{t("delete_confirm_desc")}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel data-testid="button-cancel-delete">{t("delete_cancel")}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="bg-destructive text-destructive-foreground border-destructive"
+                  data-testid="button-confirm-delete"
+                >
+                  {deleteMutation.isPending ? t("delete_deleting") : t("delete_confirm")}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <div className="px-4 space-y-4">
@@ -212,6 +284,31 @@ export default function ActivityDetail() {
                 {t("activity_leave")}
               </Button>
             )}
+          </div>
+
+          <div className="mt-4 border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+              <Share2 className="w-3 h-3" />
+              {t("share_activity")}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              <Button variant="outline" size="sm" onClick={shareWhatsApp} data-testid="button-share-whatsapp">
+                <SiWhatsapp className="w-4 h-4 mr-1.5" />
+                {t("share_whatsapp")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={shareFacebook} data-testid="button-share-facebook">
+                <SiFacebook className="w-4 h-4 mr-1.5" />
+                {t("share_facebook")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={shareTwitter} data-testid="button-share-twitter">
+                <SiX className="w-4 h-4 mr-1.5" />
+                {t("share_twitter")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={copyLink} data-testid="button-share-copy">
+                <Copy className="w-4 h-4 mr-1.5" />
+                {t("share_copy")}
+              </Button>
+            </div>
           </div>
         </Card>
 

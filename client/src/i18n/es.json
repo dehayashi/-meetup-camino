@@ -197,5 +197,16 @@
   "transport_from_required": "Selecciona la ciudad de salida.",
   "transport_to_required": "Selecciona la ciudad de llegada.",
   "title_min_3": "Mínimo 3 caracteres.",
-  "city_required": "Selecciona una ciudad."
+  "city_required": "Selecciona una ciudad.",
+
+  "share_activity": "Compartir actividad",
+  "share_activity_text": "{title} - {city} ({date})",
+
+  "delete_confirm_title": "¿Eliminar actividad?",
+  "delete_confirm_desc": "Esta acción es irreversible. Todos los mensajes, valoraciones y participaciones serán eliminados.",
+  "delete_confirm": "Eliminar",
+  "delete_cancel": "Cancelar",
+  "delete_deleting": "Eliminando...",
+  "delete_success": "¡Actividad eliminada!",
+  "delete_error": "Error al eliminar actividad"
 }

@@ -197,5 +197,16 @@
   "transport_from_required": "Select a departure city.",
   "transport_to_required": "Select an arrival city.",
   "title_min_3": "Minimum 3 characters.",
-  "city_required": "Select a city."
+  "city_required": "Select a city.",
+
+  "share_activity": "Share activity",
+  "share_activity_text": "{title} - {city} ({date})",
+
+  "delete_confirm_title": "Delete activity?",
+  "delete_confirm_desc": "This action cannot be undone. All messages, ratings, and participations will be removed.",
+  "delete_confirm": "Delete",
+  "delete_cancel": "Cancel",
+  "delete_deleting": "Deleting...",
+  "delete_success": "Activity deleted!",
+  "delete_error": "Failed to delete activity"
 }

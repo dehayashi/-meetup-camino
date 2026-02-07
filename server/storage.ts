@@ -42,6 +42,8 @@ export interface IStorage {
   deletePushSubscription(userId: string): Promise<void>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
 
+  deleteActivity(activityId: number): Promise<void>;
+
   getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]>;
 }
 
@@ -286,6 +288,13 @@ export class DatabaseStorage implements IStorage {
 
   async getAllPushSubscriptions(): Promise<PushSubscription[]> {
     return db.select().from(pushSubscriptions);
+  }
+
+  async deleteActivity(activityId: number): Promise<void> {
+    await db.delete(ratings).where(eq(ratings.activityId, activityId));
+    await db.delete(chatMessages).where(eq(chatMessages.activityId, activityId));
+    await db.delete(activityParticipants).where(eq(activityParticipants.activityId, activityId));
+    await db.delete(activities).where(eq(activities.id, activityId));
   }
 
   async getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]> {

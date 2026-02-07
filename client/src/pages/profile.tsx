@@ -15,10 +15,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera } from "lucide-react";
+import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera, Languages } from "lucide-react";
 import { useState } from "react";
 import { useT } from "@/lib/i18n";
 import type { PilgrimProfile } from "@shared/schema";
+import { countries, getFlagUrl, getCountryName } from "@/constants/countries";
 
 const cities = [
   "Porto", "Lisboa", "Saint-Jean-Pied-de-Port", "Pamplona", "Estella",
@@ -35,6 +36,23 @@ const languages = [
   { value: "it", label: "Italiano" },
   { value: "ko", label: "\ud55c\uad6d\uc5b4" },
   { value: "ja", label: "\u65e5\u672c\u8a9e" },
+];
+
+const spokenLanguageOptions = [
+  { value: "pt", label: "Portugu\u00eas" },
+  { value: "en", label: "English" },
+  { value: "es", label: "Espa\u00f1ol" },
+  { value: "fr", label: "Fran\u00e7ais" },
+  { value: "de", label: "Deutsch" },
+  { value: "it", label: "Italiano" },
+  { value: "nl", label: "Nederlands" },
+  { value: "ko", label: "\ud55c\uad6d\uc5b4" },
+  { value: "ja", label: "\u65e5\u672c\u8a9e" },
+  { value: "zh", label: "\u4e2d\u6587" },
+  { value: "ru", label: "\u0420\u0443\u0441\u0441\u043a\u0438\u0439" },
+  { value: "ar", label: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629" },
+  { value: "hi", label: "\u0939\u093f\u0928\u094d\u0926\u0940" },
+  { value: "pl", label: "Polski" },
 ];
 
 const profileSchema = z.object({
@@ -57,6 +75,7 @@ export default function Profile() {
   const { toast } = useToast();
   const { t } = useT();
   const [selectedCities, setSelectedCities] = useState<string[]>([]);
+  const [selectedSpokenLanguages, setSelectedSpokenLanguages] = useState<string[]>([]);
   const [photoUploading, setPhotoUploading] = useState(false);
 
   const { data: profile, isLoading } = useQuery<PilgrimProfile | null>({
@@ -94,6 +113,7 @@ export default function Profile() {
         prefLodging: profile.prefLodging || 3,
       });
       setSelectedCities(profile.cities || []);
+      setSelectedSpokenLanguages(profile.spokenLanguages || []);
     } else if (user) {
       form.setValue("displayName", [user.firstName, user.lastName].filter(Boolean).join(" ") || "");
     }
@@ -132,6 +152,7 @@ export default function Profile() {
       const res = await apiRequest("POST", "/api/profile", {
         ...data,
         cities: selectedCities,
+        spokenLanguages: selectedSpokenLanguages,
         photoUrl: profile?.photoUrl || user?.profileImageUrl || "",
       });
       return res.json();
@@ -195,8 +216,23 @@ export default function Profile() {
           />
         </div>
         <div>
-          <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
+          <p className="font-semibold flex items-center gap-1.5">
+            {profile?.nationality && (
+              <img
+                src={getFlagUrl(profile.nationality, 20)}
+                alt={getCountryName(profile.nationality)}
+                className="w-5 h-3.5 rounded-sm inline-block"
+                data-testid="flag-profile"
+              />
+            )}
+            {user?.firstName} {user?.lastName}
+          </p>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
+          {profile?.spokenLanguages && profile.spokenLanguages.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5" data-testid="text-spoken-languages">
+              {profile.spokenLanguages.map(l => spokenLanguageOptions.find(o => o.value === l)?.label || l).join(", ")}
+            </p>
+          )}
           {photoUploading && <p className="text-xs text-muted-foreground">{t("profile_uploading_photo")}</p>}
         </div>
       </div>
@@ -247,9 +283,30 @@ export default function Profile() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t("profile_nationality")}</FormLabel>
-                    <FormControl>
-                      <Input placeholder={t("profile_nationality_placeholder")} {...field} data-testid="input-nationality" />
-                    </FormControl>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger data-testid="select-nationality">
+                          <SelectValue placeholder={t("profile_nationality_placeholder")}>
+                            {field.value && (
+                              <span className="flex items-center gap-1.5">
+                                <img src={getFlagUrl(field.value, 20)} alt="" className="w-5 h-3.5 rounded-sm inline-block" />
+                                {getCountryName(field.value)}
+                              </span>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            <span className="flex items-center gap-1.5">
+                              <img src={getFlagUrl(c.code, 20)} alt="" className="w-5 h-3.5 rounded-sm inline-block" />
+                              {c.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -318,6 +375,41 @@ export default function Profile() {
                         <Plus className="w-3 h-3 mr-0.5" />
                       )}
                       {city}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <FormLabel className="flex items-center gap-1.5">
+                <Languages className="w-4 h-4" />
+                {t("profile_spoken_languages")}
+              </FormLabel>
+              <p className="text-xs text-muted-foreground mt-0.5 mb-2">{t("profile_spoken_languages_desc")}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {spokenLanguageOptions.map((lang) => {
+                  const isSelected = selectedSpokenLanguages.includes(lang.value);
+                  return (
+                    <Badge
+                      key={lang.value}
+                      variant={isSelected ? "default" : "outline"}
+                      className="cursor-pointer toggle-elevate"
+                      onClick={() =>
+                        setSelectedSpokenLanguages((prev) =>
+                          prev.includes(lang.value)
+                            ? prev.filter((l) => l !== lang.value)
+                            : [...prev, lang.value]
+                        )
+                      }
+                      data-testid={`spoken-lang-badge-${lang.value}`}
+                    >
+                      {isSelected ? (
+                        <X className="w-3 h-3 mr-0.5" />
+                      ) : (
+                        <Plus className="w-3 h-3 mr-0.5" />
+                      )}
+                      {lang.label}
                     </Badge>
                   );
                 })}

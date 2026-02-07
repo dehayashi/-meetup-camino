@@ -4,6 +4,17 @@
 A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-07: Nationality Flags + Spoken Languages
+  - Nationality field changed from freeform text to Select dropdown with country codes (ISO 3166-1 alpha-2)
+  - Country flags displayed via flagcdn.com CDN images
+  - Flags shown on: activity cards (creator), activity detail (creator + participants), ranking page
+  - Reusable CountryFlag component at client/src/components/country-flag.tsx
+  - Countries constants at client/src/constants/countries.ts
+  - New spokenLanguages text array column on pilgrim_profiles
+  - Spoken languages multi-select badges on profile page (14 language options)
+  - Spoken languages displayed on profile header
+  - Social sharing buttons (WhatsApp, Facebook, X/Twitter, Copy Link) on activity detail
+  - Delete activity feature (creator-only, with confirmation dialog)
 - 2026-02-07: Transport Routes Feature
   - Structured From/To city fields for transport activities
   - Predefined high-demand routes (Madrid→Pamplona, Lisboa→Porto, etc.)

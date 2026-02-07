@@ -199,6 +199,9 @@
   "title_min_3": "Mínimo 3 caracteres.",
   "city_required": "Selecciona una ciudad.",
 
+  "profile_spoken_languages": "Idiomas que hablo",
+  "profile_spoken_languages_desc": "Selecciona los idiomas que usas para comunicarte",
+
   "share_activity": "Compartir actividad",
   "share_activity_text": "{title} - {city} ({date})",
 

@@ -29,6 +29,7 @@ import {
   Trash2, Share2,
 } from "lucide-react";
 import { SiWhatsapp, SiFacebook, SiX } from "react-icons/si";
+import { CountryFlag } from "@/components/country-flag";
 import type { Activity, PilgrimProfile, ChatMessage, Rating } from "@shared/schema";
 
 const typeIcons: Record<string, typeof Car> = {
@@ -235,7 +236,10 @@ export default function ActivityDetail() {
               <TypeIcon className="w-3 h-3 mr-1" />
               {typeLabel}
             </Badge>
-            <span className="text-xs text-muted-foreground">{t("by_creator", { name: activity.creatorName })}</span>
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <CountryFlag code={activity.creatorNationality} size={16} />
+              {t("by_creator", { name: activity.creatorName })}
+            </span>
           </div>
 
           {activity.type === "transport" && activity.transportFrom && activity.transportTo && (
@@ -316,12 +320,13 @@ export default function ActivityDetail() {
           <Card className="p-4">
             <h3 className="font-semibold text-sm mb-3">{t("activity_participants", { count: activity.participantCount })}</h3>
             <div className="flex flex-wrap gap-2">
-              {activity.participants.map((p) => (
+              {activity.participants.map((p: any) => (
                 <div key={p.userId} className="flex items-center gap-2 bg-secondary/50 rounded-md px-2 py-1">
                   <Avatar className="w-6 h-6">
                     <AvatarImage src={p.photoUrl || p.profileImageUrl || ""} />
                     <AvatarFallback className="text-[10px]">{p.displayName?.charAt(0)}</AvatarFallback>
                   </Avatar>
+                  <CountryFlag code={p.nationality} size={14} />
                   <span className="text-xs">{p.displayName}</span>
                 </div>
               ))}

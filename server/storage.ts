@@ -16,11 +16,11 @@ export interface IStorage {
   upsertProfile(data: InsertPilgrimProfile): Promise<PilgrimProfile>;
   updateProfilePhoto(userId: string, photoUrl: string): Promise<void>;
 
-  getActivities(): Promise<(Activity & { participantCount: number; creatorName: string })[]>;
+  getActivities(): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]>;
   getActivity(id: number): Promise<Activity | undefined>;
   getActivityDetail(id: number, userId: string): Promise<any>;
-  getMyActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string })[]>;
-  getRecommendedActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string })[]>;
+  getMyActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]>;
+  getRecommendedActivities(userId: string): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]>;
   createActivity(data: InsertActivity): Promise<Activity>;
 
   joinActivity(activityId: number, userId: string): Promise<void>;
@@ -44,7 +44,7 @@ export interface IStorage {
 
   deleteActivity(activityId: number): Promise<void>;
 
-  getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]>;
+  getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; nationality: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -68,6 +68,7 @@ export class DatabaseStorage implements IStorage {
           travelStartDate: data.travelStartDate,
           travelEndDate: data.travelEndDate,
           cities: data.cities,
+          spokenLanguages: data.spokenLanguages,
           prefTransport: data.prefTransport,
           prefMeals: data.prefMeals,
           prefHiking: data.prefHiking,
@@ -82,7 +83,7 @@ export class DatabaseStorage implements IStorage {
     await db.update(pilgrimProfiles).set({ photoUrl }).where(eq(pilgrimProfiles.userId, userId));
   }
 
-  async getActivities(): Promise<(Activity & { participantCount: number; creatorName: string })[]> {
+  async getActivities(): Promise<(Activity & { participantCount: number; creatorName: string; creatorNationality: string | null })[]> {
     const acts = await db.select().from(activities).orderBy(desc(activities.createdAt));
     const result = [];
     for (const act of acts) {
@@ -93,6 +94,7 @@ export class DatabaseStorage implements IStorage {
         ...act,
         participantCount: (countRes?.count || 0) + 1,
         creatorName: creator?.displayName || "Peregrino",
+        creatorNationality: creator?.nationality || null,
       });
     }
     return result;
@@ -124,6 +126,7 @@ export class DatabaseStorage implements IStorage {
       ...act,
       participantCount,
       creatorName: creator?.displayName || "Peregrino",
+      creatorNationality: creator?.nationality || null,
       isCreator,
       isParticipant,
       participants: allParticipants,
@@ -297,7 +300,7 @@ export class DatabaseStorage implements IStorage {
     await db.delete(activities).where(eq(activities.id, activityId));
   }
 
-  async getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]> {
+  async getUserRankings(): Promise<{ userId: string; displayName: string; photoUrl: string | null; nationality: string | null; avgRating: number; totalRatings: number; activitiesCreated: number }[]> {
     const allActivities = await db.select().from(activities);
     const allRatings = await db.select().from(ratings);
     const allProfiles = await db.select().from(pilgrimProfiles);
@@ -322,6 +325,7 @@ export class DatabaseStorage implements IStorage {
           userId: p.userId,
           displayName: p.displayName,
           photoUrl: p.photoUrl,
+          nationality: p.nationality || null,
           avgRating: Math.round(avgRating * 10) / 10,
           totalRatings: scores.length,
           activitiesCreated: creatorActivityCount[p.userId] || 0,

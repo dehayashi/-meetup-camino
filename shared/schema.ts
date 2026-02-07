@@ -16,6 +16,7 @@ export const pilgrimProfiles = pgTable("pilgrim_profiles", {
   travelStartDate: text("travel_start_date"),
   travelEndDate: text("travel_end_date"),
   cities: text("cities").array(),
+  spokenLanguages: text("spoken_languages").array(),
   prefTransport: integer("pref_transport").default(0),
   prefMeals: integer("pref_meals").default(0),
   prefHiking: integer("pref_hiking").default(0),

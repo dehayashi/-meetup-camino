@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, Clock, Users, Car, UtensilsCrossed, Mountain, BedDouble, ArrowRight } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import type { Activity } from "@shared/schema";
+import { CountryFlag } from "@/components/country-flag";
 
 const typeColors: Record<string, string> = {
   transport: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
@@ -20,7 +21,7 @@ const typeIcons: Record<string, typeof Car> = {
 };
 
 interface ActivityCardProps {
-  activity: Activity & { participantCount?: number; creatorName?: string };
+  activity: Activity & { participantCount?: number; creatorName?: string; creatorNationality?: string | null };
   onClick?: () => void;
 }
 
@@ -98,7 +99,8 @@ export function ActivityCard({ activity, onClick }: ActivityCardProps) {
               </span>
             </span>
             {activity.creatorName && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <CountryFlag code={activity.creatorNationality} size={14} />
                 {t("by_creator", { name: activity.creatorName })}
               </span>
             )}

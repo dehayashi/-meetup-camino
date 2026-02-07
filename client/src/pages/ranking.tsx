@@ -5,11 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Trophy, Star, Activity, Medal } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { CountryFlag } from "@/components/country-flag";
 
 interface RankedUser {
   userId: string;
   displayName: string;
   photoUrl: string | null;
+  nationality: string | null;
   avgRating: number;
   totalRatings: number;
   activitiesCreated: number;
@@ -74,7 +76,8 @@ export default function Ranking() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate" data-testid={`ranking-name-${index}`}>
+                  <p className="font-semibold text-sm truncate flex items-center gap-1.5" data-testid={`ranking-name-${index}`}>
+                    <CountryFlag code={user.nationality} size={16} />
                     {user.displayName}
                   </p>
                   <StarRating rating={user.avgRating} />

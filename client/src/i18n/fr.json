@@ -185,5 +185,17 @@
   "ranking_description": "Les pèlerins les mieux notés d'après les avis sur leurs activités.",
   "ranking_ratings_count": "{count} avis",
   "ranking_activities_count": "{count} activités",
-  "ranking_empty": "Aucun pèlerin noté pour le moment. Participez et laissez des avis !"
+  "ranking_empty": "Aucun pèlerin noté pour le moment. Participez et laissez des avis !",
+
+  "transport_from": "Départ",
+  "transport_to": "Arrivée",
+  "transport_from_placeholder": "Ville de départ",
+  "transport_to_placeholder": "Ville d'arrivée",
+  "transport_suggested_route": "Itinéraire suggéré",
+  "transport_route_placeholder": "Choisissez un trajet courant (optionnel)",
+  "transport_same_city_error": "Le départ et l'arrivée doivent être différents.",
+  "transport_from_required": "Sélectionnez la ville de départ.",
+  "transport_to_required": "Sélectionnez la ville d'arrivée.",
+  "title_min_3": "Minimum 3 caractères.",
+  "city_required": "Sélectionnez une ville."
 }

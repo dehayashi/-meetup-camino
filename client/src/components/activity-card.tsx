@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, Clock, Users, Car, UtensilsCrossed, Mountain, BedDouble } from "lucide-react";
+import { MapPin, Calendar, Clock, Users, Car, UtensilsCrossed, Mountain, BedDouble, ArrowRight } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import type { Activity } from "@shared/schema";
 
@@ -65,6 +65,14 @@ export function ActivityCard({ activity, onClick }: ActivityCardProps) {
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
               {activity.description}
             </p>
+          )}
+          {activity.type === "transport" && activity.transportFrom && activity.transportTo && (
+            <div className="flex items-center gap-1.5 mt-1.5 text-xs font-medium text-primary" data-testid={`transport-route-${activity.id}`}>
+              <MapPin className="w-3 h-3" />
+              {activity.transportFrom}
+              <ArrowRight className="w-3 h-3" />
+              {activity.transportTo}
+            </div>
           )}
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <span className="flex items-center gap-1 text-xs text-muted-foreground">

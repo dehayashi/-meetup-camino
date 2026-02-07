@@ -185,5 +185,17 @@
   "ranking_description": "The highest-rated pilgrims based on their activity reviews.",
   "ranking_ratings_count": "{count} ratings",
   "ranking_activities_count": "{count} activities",
-  "ranking_empty": "No pilgrims rated yet. Join activities and leave reviews!"
+  "ranking_empty": "No pilgrims rated yet. Join activities and leave reviews!",
+
+  "transport_from": "Departure",
+  "transport_to": "Arrival",
+  "transport_from_placeholder": "Select departure city",
+  "transport_to_placeholder": "Select arrival city",
+  "transport_suggested_route": "Suggested route",
+  "transport_route_placeholder": "Choose a common route (optional)",
+  "transport_same_city_error": "Departure and arrival must be different.",
+  "transport_from_required": "Select a departure city.",
+  "transport_to_required": "Select an arrival city.",
+  "title_min_3": "Minimum 3 characters.",
+  "city_required": "Select a city."
 }

@@ -39,6 +39,9 @@ export const activities = pgTable("activities", {
   spots: integer("spots").default(4),
   lat: real("lat"),
   lng: real("lng"),
+  transportFrom: text("transport_from"),
+  transportTo: text("transport_to"),
+  transportRouteId: text("transport_route_id"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

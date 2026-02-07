@@ -14,7 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useT } from "@/lib/i18n";
 import {
   ArrowLeft, MapPin, Calendar, Clock, Users, Send, Star,
-  Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus, Copy,
+  Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus, Copy, ArrowRight,
 } from "lucide-react";
 import type { Activity, PilgrimProfile, ChatMessage, Rating } from "@shared/schema";
 
@@ -165,6 +165,15 @@ export default function ActivityDetail() {
             </Badge>
             <span className="text-xs text-muted-foreground">{t("by_creator", { name: activity.creatorName })}</span>
           </div>
+
+          {activity.type === "transport" && activity.transportFrom && activity.transportTo && (
+            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-primary" data-testid="text-transport-route">
+              <MapPin className="w-4 h-4" />
+              {activity.transportFrom}
+              <ArrowRight className="w-4 h-4" />
+              {activity.transportTo}
+            </div>
+          )}
 
           {activity.description && (
             <p className="text-sm text-muted-foreground mb-3">{activity.description}</p>

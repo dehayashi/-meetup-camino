@@ -185,5 +185,17 @@
   "ranking_description": "Los peregrinos mejor valorados por sus actividades en el Camino.",
   "ranking_ratings_count": "{count} valoraciones",
   "ranking_activities_count": "{count} actividades",
-  "ranking_empty": "Ningún peregrino valorado todavía. Participa en actividades y valora."
+  "ranking_empty": "Ningún peregrino valorado todavía. Participa en actividades y valora.",
+
+  "transport_from": "Salida",
+  "transport_to": "Llegada",
+  "transport_from_placeholder": "Ciudad de salida",
+  "transport_to_placeholder": "Ciudad de llegada",
+  "transport_suggested_route": "Ruta sugerida",
+  "transport_route_placeholder": "Elige un trayecto común (opcional)",
+  "transport_same_city_error": "Salida y llegada deben ser diferentes.",
+  "transport_from_required": "Selecciona la ciudad de salida.",
+  "transport_to_required": "Selecciona la ciudad de llegada.",
+  "title_min_3": "Mínimo 3 caracteres.",
+  "city_required": "Selecciona una ciudad."
 }

@@ -56,6 +56,8 @@ export interface IStorage {
   getAllInvites(): Promise<InviteCode[]>;
   disableInvite(id: number): Promise<void>;
   hasRedeemedAnyInvite(userId: string): Promise<boolean>;
+  getInvitesByCreator(userId: string): Promise<InviteCode[]>;
+  setCanInvite(userId: string, canInvite: boolean): Promise<void>;
 
   blockUser(blockerId: string, blockedId: string): Promise<UserBlock>;
   unblockUser(blockerId: string, blockedId: string): Promise<void>;
@@ -411,6 +413,18 @@ export class DatabaseStorage implements IStorage {
     const [res] = await db.select().from(inviteRedemptions)
       .where(eq(inviteRedemptions.userId, userId));
     return !!res;
+  }
+
+  async getInvitesByCreator(userId: string): Promise<InviteCode[]> {
+    return db.select().from(inviteCodes)
+      .where(eq(inviteCodes.createdBy, userId))
+      .orderBy(desc(inviteCodes.createdAt));
+  }
+
+  async setCanInvite(userId: string, canInvite: boolean): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({ canInvite })
+      .where(eq(pilgrimProfiles.userId, userId));
   }
 
   async blockUser(blockerId: string, blockedId: string): Promise<UserBlock> {

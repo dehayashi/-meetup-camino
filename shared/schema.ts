@@ -22,6 +22,7 @@ export const pilgrimProfiles = pgTable("pilgrim_profiles", {
   prefHiking: integer("pref_hiking").default(0),
   prefLodging: integer("pref_lodging").default(0),
   isAdmin: boolean("is_admin").default(false),
+  canInvite: boolean("can_invite").default(false),
   isSuspended: boolean("is_suspended").default(false),
   suspensionReason: text("suspension_reason"),
   acceptedTermsAt: timestamp("accepted_terms_at"),

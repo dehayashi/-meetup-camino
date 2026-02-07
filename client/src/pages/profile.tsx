@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera, Languages, ShieldCheck, ShieldAlert, Clock, Upload, FileCheck, AlertTriangle } from "lucide-react";
+import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera, Languages, ShieldCheck, ShieldAlert, Clock, Upload, FileCheck, AlertTriangle, Share2, Mail, Copy, UserPlus } from "lucide-react";
 import { useState, useRef } from "react";
 import { useT } from "@/lib/i18n";
 import type { PilgrimProfile } from "@shared/schema";
@@ -480,8 +480,166 @@ export default function Profile() {
 
       <VerificationSection />
 
+      <MyInvitesSection canInvite={profile?.canInvite === true || profile?.isAdmin === true} />
+
       <NotificationSettings />
     </div>
+  );
+}
+
+function MyInvitesSection({ canInvite }: { canInvite: boolean }) {
+  const { t } = useT();
+  const { toast } = useToast();
+
+  const { data: myInvites = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/invites/mine"],
+    enabled: canInvite,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/invites/create", { maxUses: 1 });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/invites/mine"] });
+      toast({ title: t("invite_created") });
+    },
+    onError: () => {
+      toast({ title: t("invite_create_error"), variant: "destructive" });
+    },
+  });
+
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+  const getShareMessage = (code: string) => {
+    return t("invite_share_message", { code, url: appUrl });
+  };
+
+  const shareWhatsApp = (code: string) => {
+    const text = encodeURIComponent(getShareMessage(code));
+    window.open(`https://wa.me/?text=${text}`, "_blank");
+  };
+
+  const shareEmail = (code: string) => {
+    const subject = encodeURIComponent(t("invite_share_email_subject"));
+    const body = encodeURIComponent(getShareMessage(code));
+    window.open(`mailto:?subject=${subject}&body=${body}`, "_blank");
+  };
+
+  const shareFacebook = (code: string) => {
+    const url = encodeURIComponent(appUrl);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${encodeURIComponent(getShareMessage(code))}`, "_blank");
+  };
+
+  const shareTwitter = (code: string) => {
+    const text = encodeURIComponent(getShareMessage(code));
+    window.open(`https://twitter.com/intent/tweet?text=${text}`, "_blank");
+  };
+
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    toast({ title: t("share_copied") });
+  };
+
+  const copyShareMessage = (code: string) => {
+    navigator.clipboard.writeText(getShareMessage(code));
+    toast({ title: t("share_copied") });
+  };
+
+  if (!canInvite) return null;
+
+  const getInviteStatus = (inv: any) => {
+    if (inv.isDisabled) return { label: t("admin_invite_disabled"), variant: "secondary" as const };
+    if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return { label: t("admin_invite_expired"), variant: "outline" as const };
+    if (inv.maxUses && (inv.usedCount || 0) >= inv.maxUses) return { label: t("invite_used"), variant: "outline" as const };
+    return { label: t("admin_invite_active"), variant: "default" as const };
+  };
+
+  const activeInvites = myInvites.filter((inv: any) => {
+    if (inv.isDisabled) return false;
+    if (inv.expiresAt && new Date() > new Date(inv.expiresAt)) return false;
+    if (inv.maxUses && (inv.usedCount || 0) >= inv.maxUses) return false;
+    return true;
+  });
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <h3 className="font-semibold flex items-center gap-1.5" data-testid="text-my-invites-title">
+          <UserPlus className="w-4 h-4 text-primary" />
+          {t("my_invites_title")}
+        </h3>
+        <Button
+          size="sm"
+          onClick={() => createMutation.mutate()}
+          disabled={createMutation.isPending}
+          data-testid="button-create-my-invite"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          {t("my_invites_create")}
+        </Button>
+      </div>
+      <p className="text-sm text-muted-foreground mb-3">{t("my_invites_description")}</p>
+
+      {isLoading && <Skeleton className="h-16 w-full" />}
+
+      {!isLoading && myInvites.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center py-4" data-testid="text-no-my-invites">
+          {t("my_invites_empty")}
+        </p>
+      )}
+
+      <div className="space-y-2">
+        {myInvites.map((inv: any) => {
+          const status = getInviteStatus(inv);
+          const isActive = activeInvites.includes(inv);
+          return (
+            <div key={inv.id} className="border rounded-md p-3 space-y-2" data-testid={`card-my-invite-${inv.id}`}>
+              <div className="flex items-center gap-2 flex-wrap">
+                <code className="font-mono text-sm font-bold tracking-wider" data-testid={`text-invite-code-${inv.id}`}>{inv.code}</code>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => copyCode(inv.code)}
+                  data-testid={`button-copy-code-${inv.id}`}
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                </Button>
+                <Badge variant={status.variant}>{status.label}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {inv.usedCount || 0}/{inv.maxUses || 1}
+                </span>
+              </div>
+              {isActive && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-xs text-muted-foreground mr-1">{t("my_invites_share_via")}:</span>
+                  <Button size="sm" variant="outline" onClick={() => shareWhatsApp(inv.code)} data-testid={`button-share-whatsapp-${inv.id}`}>
+                    <Share2 className="w-3.5 h-3.5 mr-1" />
+                    WhatsApp
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareEmail(inv.code)} data-testid={`button-share-email-${inv.id}`}>
+                    <Mail className="w-3.5 h-3.5 mr-1" />
+                    Email
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareFacebook(inv.code)} data-testid={`button-share-facebook-${inv.id}`}>
+                    <Share2 className="w-3.5 h-3.5 mr-1" />
+                    Facebook
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => shareTwitter(inv.code)} data-testid={`button-share-twitter-${inv.id}`}>
+                    <Share2 className="w-3.5 h-3.5 mr-1" />
+                    X
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => copyShareMessage(inv.code)} data-testid={`button-copy-share-${inv.id}`}>
+                    <Copy className="w-3.5 h-3.5 mr-1" />
+                    {t("share_copy")}
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
   );
 }
 

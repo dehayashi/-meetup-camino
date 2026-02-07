@@ -581,6 +581,7 @@ export async function registerRoutes(
         await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
         if (isFirstAdmin && !existingProfile.isAdmin) {
           await storage.setAdmin(userId, true);
+          await storage.setCanInvite(userId, true);
         }
       } else {
         const displayName = `${req.user.claims.first_name || ""} ${req.user.claims.last_name || ""}`.trim() || "Peregrino";
@@ -592,6 +593,7 @@ export async function registerRoutes(
         await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
         if (isFirstAdmin) {
           await storage.setAdmin(userId, true);
+          await storage.setCanInvite(userId, true);
         }
       }
 
@@ -604,8 +606,11 @@ export async function registerRoutes(
 
   app.post("/api/invites/create", isAuthenticated, async (req: any, res) => {
     try {
+      const userId = req.user.claims.sub;
       const admin = await isAdminUser(req);
-      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const profile = await storage.getProfile(userId);
+      const canInvite = admin || profile?.canInvite === true;
+      if (!canInvite) return res.status(403).json({ message: "Invite permission required" });
 
       const parsed = inviteCreateSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid invite data" });
@@ -613,7 +618,7 @@ export async function registerRoutes(
       const code = crypto.randomBytes(4).toString("hex").toUpperCase();
       const invite = await storage.createInviteCode({
         code,
-        createdBy: req.user.claims.sub,
+        createdBy: userId,
         maxUses: parsed.data.maxUses || 1,
         expiresAt: parsed.data.expiresAt ? new Date(parsed.data.expiresAt) : null,
         isDisabled: false,
@@ -631,6 +636,20 @@ export async function registerRoutes(
       const admin = await isAdminUser(req);
       if (!admin) return res.status(403).json({ message: "Admin access required" });
       const invites = await storage.getAllInvites();
+      res.json(invites);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch invites" });
+    }
+  });
+
+  app.get("/api/invites/mine", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getProfile(userId);
+      const admin = await isAdminUser(req);
+      const canInvite = admin || profile?.canInvite === true;
+      if (!canInvite) return res.json([]);
+      const invites = await storage.getInvitesByCreator(userId);
       res.json(invites);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch invites" });
@@ -765,6 +784,19 @@ export async function registerRoutes(
       res.json({ ok: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to unsuspend user" });
+    }
+  });
+
+  app.post("/api/admin/grant-invite", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const { userId, canInvite } = req.body;
+      if (!userId) return res.status(400).json({ message: "User ID required" });
+      await storage.setCanInvite(userId, canInvite !== false);
+      res.json({ ok: true });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update invite permission" });
     }
   });
 

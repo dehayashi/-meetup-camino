@@ -4,6 +4,21 @@
 A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-07: Transport Routes Feature
+  - Structured From/To city fields for transport activities
+  - Predefined high-demand routes (Madrid→Pamplona, Lisboa→Porto, etc.)
+  - Auto-fill from/to when selecting a suggested route
+  - Auto-generated title from route if title left empty
+  - Validation: departure and arrival must be different cities
+  - Transport route display on activity cards and detail pages (From → To)
+  - Constants file at client/src/constants/transport-routes.ts for easy expansion
+  - Schema fields: transportFrom, transportTo, transportRouteId on activities table
+  - i18n translations for all transport labels/errors in 4 languages
+- 2026-02-07: User Ranking + Profile Photos + Date Filter
+  - Ranking page at /ranking showing pilgrims by average rating
+  - Profile photo upload (base64 data URLs, 2MB limit)
+  - Date range filter on activities page (From/To date inputs)
+  - Dashboard updated with ranking link
 - 2026-02-06: Privacy Policy + Domain Verification
   - Privacy policy page at /privacy compliant with LGPD (Brazil), GDPR (EU), and CCPA/CPRA (US)
   - Privacy policy available in 4 languages (PT-BR, EN, ES, FR) matching user's locale

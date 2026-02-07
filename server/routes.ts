@@ -43,12 +43,17 @@ async function isVerifiedUser(req: any): Promise<boolean> {
   return profile?.verificationStatus === "verified";
 }
 
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const adminEmails = (process.env.ADMIN_EMAIL || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+  return adminEmails.includes(email.toLowerCase());
+}
+
 async function isAdminUser(req: any): Promise<boolean> {
   const userId = req.user?.claims?.sub;
   const email = req.user?.claims?.email;
   if (!userId) return false;
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && email === adminEmail) return true;
+  if (isAdminEmail(email)) return true;
   const profile = await storage.getProfile(userId);
   return profile?.isAdmin === true;
 }
@@ -516,21 +521,19 @@ export async function registerRoutes(
 
       if (!profile) {
         const hasRedeemed = await storage.hasRedeemedAnyInvite(userId);
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const isFirstAdmin = adminEmail && email === adminEmail;
+        const isConfiguredAdmin = isAdminEmail(email);
         return res.json({
-          status: hasRedeemed || isFirstAdmin ? "needs_profile" : "needs_invite",
-          isAdmin: !!isFirstAdmin,
+          status: hasRedeemed || isConfiguredAdmin ? "needs_profile" : "needs_invite",
+          isAdmin: !!isConfiguredAdmin,
         });
       }
 
       if (!profile.acceptedTermsAt) {
         const hasRedeemed = await storage.hasRedeemedAnyInvite(userId);
-        const adminEmail = process.env.ADMIN_EMAIL;
-        const isFirstAdmin = adminEmail && email === adminEmail;
+        const isConfiguredAdmin = isAdminEmail(email);
         return res.json({
-          status: hasRedeemed || isFirstAdmin ? "needs_terms" : "needs_invite",
-          isAdmin: !!isFirstAdmin || profile.isAdmin,
+          status: hasRedeemed || isConfiguredAdmin ? "needs_terms" : "needs_invite",
+          isAdmin: !!isConfiguredAdmin || profile.isAdmin,
         });
       }
 
@@ -567,11 +570,10 @@ export async function registerRoutes(
       const parsed = acceptTermsSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid data" });
 
-      const adminEmail = process.env.ADMIN_EMAIL;
       const email = req.user.claims.email;
-      const isFirstAdmin = adminEmail && email === adminEmail;
+      const isConfiguredAdmin = isAdminEmail(email);
 
-      if (!isFirstAdmin) {
+      if (!isConfiguredAdmin) {
         const consumed = await storage.consumeInvite(parsed.data.inviteCode.trim().toUpperCase(), userId);
         if (!consumed) return res.status(400).json({ message: "invalid_code" });
       }
@@ -579,7 +581,7 @@ export async function registerRoutes(
       const existingProfile = await storage.getProfile(userId);
       if (existingProfile) {
         await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
-        if (isFirstAdmin && !existingProfile.isAdmin) {
+        if (isConfiguredAdmin && !existingProfile.isAdmin) {
           await storage.setAdmin(userId, true);
           await storage.setCanInvite(userId, true);
         }
@@ -591,7 +593,7 @@ export async function registerRoutes(
           language: "pt-BR",
         });
         await storage.acceptTerms(userId, parsed.data.termsVersion, parsed.data.privacyVersion);
-        if (isFirstAdmin) {
+        if (isConfiguredAdmin) {
           await storage.setAdmin(userId, true);
           await storage.setCanInvite(userId, true);
         }

@@ -1,0 +1,106 @@
+O melhor caminho (equilibrando segurança, custo, velocidade e chance de dar certo) é este:
+
+1) Fechar o “núcleo do produto” antes de crescer
+
+Objetivo: resolver bem o problema principal (encontrar e combinar caronas/transportes/atividades por cidade e data).
+	•	Transporte com Saída/Chegada + rotas pré-definidas (as que você listou)
+	•	Matching simples e confiável (mesma cidade/data ± 1 dia)
+	•	Link compartilhável da atividade (para crescer organicamente)
+	•	i18n (PT-BR/EN/ES/FR) já desde agora
+
+Por quê: sem isso, crescer só aumenta frustração e churn.
+
+⸻
+
+2) Segurança leve, porém efetiva (MVP)
+
+O que eu recomendo implementar agora:
+
+✅ Invite-only (entra só por convite)
+✅ Bloquear + Denunciar (com painel admin mínimo)
+✅ Termos + Privacidade + Diretrizes de segurança (LGPD + comportamento)
+✅ Rate limit + Helmet + validações
+
+Por quê: você cria comunidade mais saudável e reduz risco cedo, sem custo alto.
+
+⸻
+
+3) Verificação de identidade: manual review, mas com “gatilho”
+
+Eu recomendo manual review, mas não obrigar para todo mundo no primeiro dia.
+
+Melhor prática de MVP:
+	•	Status padrão: unverified
+	•	Usuário pode usar o app, mas com limites
+	•	Exigir verificação apenas para ações de risco:
+	•	criar atividade de Transporte
+	•	iniciar chat direto
+	•	publicar em cidades críticas (Porto / SJPDP) em datas próximas
+
+Por quê: obrigar doc+selfie logo no cadastro derruba conversão. Com gatilho, você mantém segurança onde importa.
+
+⸻
+
+4) PWA primeiro, app nativo depois
+
+Agora: PWA (já é “instalável”) + (se quiser) web push
+Depois: Capacitor para Android/iOS
+
+Por quê: PWA entrega 80% do valor com 20% do esforço. App nativo só quando tiver tração.
+
+⸻
+
+5) Monetização por doação: só depois de “valor percebido”
+
+Implante doação real (Stripe / Mercado Pago) quando:
+	•	usuário já criou/entrou em atividade
+	•	ou após completar 1 interação (ex: entrar no grupo)
+
+Por quê: doação funciona melhor quando o usuário já recebeu valor.
+
+⸻
+
+6) Escalar para produção quando tiver sinais claros
+
+Enquanto for MVP, Replit DB pode segurar.
+Quando houver uso real (ex: dezenas de atividades/dia), migre:
+	•	Replit DB → Postgres
+	•	Storage local → S3/R2
+	•	Jobs → cron + fila leve
+
+Por quê: Replit DB não é bom para busca/relacionamento e crescimento.
+
+⸻
+
+Ordem recomendada (roadmap prático)
+
+Semana 1 (produto)
+	1.	Rotas pré-definidas Transporte (saída/chegada)
+	2.	i18n completo + revisão de textos
+	3.	Link compartilhável por atividade
+	4.	Ajustes de UX e testes
+
+Semana 2 (segurança)
+	5.	Invite-only
+	6.	Bloquear/Denunciar + painel admin
+	7.	Termos/Privacidade + headers + rate limit
+
+Semana 3 (confiança)
+	8.	Verificação manual review com gatilho (transporte/chat)
+	9.	Badge “verificado” + bloqueios por status
+
+Semana 4 (crescimento)
+	10.	PWA + web push (opcional)
+	11.	Doações reais com Stripe/MP
+
+Depois (escala)
+	12.	Postgres + storage externo + logs/monitoramento
+
+⸻
+
+Minha recomendação final (o “melhor caminho”)
+
+PWA + i18n + rotas de transporte + invite-only + bloquear/denunciar + verificação manual só para transporte/chat.
+Esse combo te dá: segurança + conversão + velocidade.
+
+Se você me disser qual seu objetivo imediato (ex: “lançar para 50 peregrinos em 30 dias” ou “abrir para o público”), eu ajusto esse roadmap em um plano de 2 semanas com tarefas bem fechadas e critérios de pronto.

@@ -15,8 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera, Languages } from "lucide-react";
-import { useState } from "react";
+import { LogOut, Save, X, Plus, Bell, BellOff, Loader2, Camera, Languages, ShieldCheck, ShieldAlert, Clock, Upload, FileCheck, AlertTriangle } from "lucide-react";
+import { useState, useRef } from "react";
 import { useT } from "@/lib/i18n";
 import type { PilgrimProfile } from "@shared/schema";
 import { countries, getFlagUrl, getCountryName } from "@/constants/countries";
@@ -478,8 +478,248 @@ export default function Profile() {
         </Form>
       </Card>
 
+      <VerificationSection />
+
       <NotificationSettings />
     </div>
+  );
+}
+
+function VerificationSection() {
+  const { toast } = useToast();
+  const { t } = useT();
+  const [documentPath, setDocumentPath] = useState<string | null>(null);
+  const [selfiePath, setSelfiePath] = useState<string | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<string | null>(null);
+  const [selfiePreview, setSelfiePreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+  const selfieInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: verificationStatus, isLoading } = useQuery<{
+    status: string;
+    submittedAt?: string;
+    reviewedAt?: string;
+    reason?: string;
+  }>({
+    queryKey: ["/api/verification/status"],
+  });
+
+  async function uploadFile(file: File, type: "document" | "selfie") {
+    setUploading(type);
+    try {
+      const urlRes = await apiRequest("POST", "/api/verification/upload-url", {
+        name: file.name,
+        size: file.size,
+        contentType: file.type,
+        type,
+      });
+      const { uploadURL, objectPath } = await urlRes.json();
+
+      await fetch(uploadURL, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      const previewUrl = URL.createObjectURL(file);
+
+      if (type === "document") {
+        setDocumentPath(objectPath);
+        setDocumentPreview(previewUrl);
+      } else {
+        setSelfiePath(objectPath);
+        setSelfiePreview(previewUrl);
+      }
+      toast({ title: type === "document" ? t("verification_document_uploaded") : t("verification_selfie_uploaded") });
+    } catch {
+      toast({ title: t("verification_upload_error"), variant: "destructive" });
+    }
+    setUploading(null);
+  }
+
+  async function handleSubmit() {
+    if (!documentPath || !selfiePath) {
+      toast({ title: t("verification_both_required"), variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await apiRequest("POST", "/api/verification/submit", {
+        documentPath,
+        selfiePath,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/verification/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profile"] });
+      toast({ title: t("verification_submitted") });
+      setDocumentPath(null);
+      setSelfiePath(null);
+      setDocumentPreview(null);
+      setSelfiePreview(null);
+    } catch {
+      toast({ title: t("verification_submit_error"), variant: "destructive" });
+    }
+    setSubmitting(false);
+  }
+
+  const status = verificationStatus?.status || "unverified";
+
+  const statusConfig: Record<string, { icon: typeof ShieldCheck; color: string; badgeVariant: "default" | "secondary" | "destructive" | "outline" }> = {
+    unverified: { icon: ShieldAlert, color: "text-muted-foreground", badgeVariant: "secondary" },
+    pending: { icon: Clock, color: "text-yellow-600 dark:text-yellow-400", badgeVariant: "outline" },
+    verified: { icon: ShieldCheck, color: "text-green-600 dark:text-green-400", badgeVariant: "default" },
+    rejected: { icon: AlertTriangle, color: "text-destructive", badgeVariant: "destructive" },
+  };
+
+  const config = statusConfig[status] || statusConfig.unverified;
+  const StatusIcon = config.icon;
+
+  if (isLoading) {
+    return <Card className="p-4"><Skeleton className="h-20 w-full" /></Card>;
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+        <h3 className="font-semibold flex items-center gap-1.5" data-testid="text-verification-title">
+          <ShieldCheck className="w-4 h-4 text-primary" />
+          {t("verification_title")}
+        </h3>
+        <Badge variant={config.badgeVariant} data-testid="badge-verification-status">
+          <StatusIcon className={`w-3.5 h-3.5 mr-1 ${config.color}`} />
+          {t(`verification_status_${status}`)}
+        </Badge>
+      </div>
+
+      {status === "verified" && (
+        <p className="text-sm text-green-600 dark:text-green-400 flex items-center gap-1.5" data-testid="text-verification-verified">
+          <ShieldCheck className="w-4 h-4" />
+          {t("verification_status_verified")}
+        </p>
+      )}
+
+      {status === "pending" && (
+        <p className="text-sm text-yellow-600 dark:text-yellow-400" data-testid="text-verification-pending">
+          {t("verification_pending_banner")}
+        </p>
+      )}
+
+      {status === "rejected" && (
+        <div className="space-y-3">
+          <p className="text-sm text-destructive" data-testid="text-verification-rejected-reason">
+            {t("verification_rejected_reason").replace("{reason}", verificationStatus?.reason || "")}
+          </p>
+        </div>
+      )}
+
+      {(status === "unverified" || status === "rejected") && (
+        <div className="space-y-3 mt-2">
+          <p className="text-sm text-muted-foreground">{t("verification_description")}</p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t("verification_document_label")}</p>
+              <p className="text-xs text-muted-foreground">{t("verification_document_desc")}</p>
+              {documentPreview ? (
+                <div className="relative">
+                  <img src={documentPreview} alt="Document" className="w-full h-24 object-cover rounded-md border" data-testid="img-document-preview" />
+                  <Badge variant="default" className="absolute top-1 right-1">
+                    <FileCheck className="w-3 h-3" />
+                  </Badge>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => documentInputRef.current?.click()}
+                  disabled={uploading !== null}
+                  data-testid="button-upload-document"
+                >
+                  {uploading === "document" ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-1" />
+                  )}
+                  {t("verification_upload_document")}
+                </Button>
+              )}
+              <input
+                ref={documentInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, "document");
+                }}
+                data-testid="input-document-upload"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{t("verification_selfie_label")}</p>
+              <p className="text-xs text-muted-foreground">{t("verification_selfie_desc")}</p>
+              {selfiePreview ? (
+                <div className="relative">
+                  <img src={selfiePreview} alt="Selfie" className="w-full h-24 object-cover rounded-md border" data-testid="img-selfie-preview" />
+                  <Badge variant="default" className="absolute top-1 right-1">
+                    <FileCheck className="w-3 h-3" />
+                  </Badge>
+                </div>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => selfieInputRef.current?.click()}
+                  disabled={uploading !== null}
+                  data-testid="button-upload-selfie"
+                >
+                  {uploading === "selfie" ? (
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-1" />
+                  )}
+                  {t("verification_upload_selfie")}
+                </Button>
+              )}
+              <input
+                ref={selfieInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadFile(file, "selfie");
+                }}
+                data-testid="input-selfie-upload"
+              />
+            </div>
+          </div>
+
+          {(documentPath || selfiePath) && (
+            <Button
+              onClick={handleSubmit}
+              disabled={!documentPath || !selfiePath || submitting}
+              className="w-full"
+              data-testid="button-submit-verification"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                  {t("verification_submitting")}
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4 mr-1" />
+                  {t("verification_submit")}
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 

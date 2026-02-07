@@ -4,6 +4,18 @@
 A full-stack web application (formerly Caminho Companion) that connects pilgrims on the Camino de Santiago, allowing them to share activities, transportation, meals, and accommodation during their journey. Built with React + Express + PostgreSQL. PWA with real Stripe payments, Web Push notifications, and multilingual support (PT-BR, EN, ES, FR).
 
 ## Recent Changes
+- 2026-02-07: KYC Lite Identity Verification System
+  - Manual admin review verification: users upload document photo + selfie
+  - Documents stored securely in Replit Object Storage with private ACL
+  - Verification states: unverified, pending, verified, rejected
+  - VerificationSection component on profile page with upload flow (presigned URLs)
+  - Admin Verifications tab with approve/reject + document/selfie viewing
+  - Access gating: unverified users blocked from creating/joining activities and chat
+  - Frontend + backend verification enforcement
+  - Verification status badges and banners throughout the app
+  - 40+ new i18n keys across 4 languages for verification UI
+  - Schema: verificationStatus, documentUrl, selfieUrl, timestamps on pilgrim_profiles
+  - API routes: upload-url, submit, status check, admin review, document serving
 - 2026-02-07: Invite-Only Access + Block/Report + Terms + Admin Panel + Security
   - Invite-only access system: inviteCodes and inviteRedemptions tables, 8-char hex codes
   - Admin auto-access via ADMIN_EMAIL environment variable

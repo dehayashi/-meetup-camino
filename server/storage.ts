@@ -70,6 +70,11 @@ export interface IStorage {
   unsuspendUser(userId: string): Promise<void>;
   setAdmin(userId: string, isAdmin: boolean): Promise<void>;
   acceptTerms(userId: string, termsVersion: string, privacyVersion: string): Promise<void>;
+
+  submitVerification(userId: string, documentUrl: string, selfieUrl: string): Promise<void>;
+  reviewVerification(userId: string, reviewedBy: string, status: string, reason?: string): Promise<void>;
+  getPendingVerifications(): Promise<PilgrimProfile[]>;
+  getAllVerifications(): Promise<PilgrimProfile[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -491,6 +496,43 @@ export class DatabaseStorage implements IStorage {
         privacyVersion,
       })
       .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async submitVerification(userId: string, documentUrl: string, selfieUrl: string): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({
+        verificationStatus: "pending",
+        documentUrl,
+        selfieUrl,
+        verificationSubmittedAt: new Date(),
+        verificationReviewedAt: null,
+        verificationReviewedBy: null,
+        verificationReason: null,
+      })
+      .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async reviewVerification(userId: string, reviewedBy: string, status: string, reason?: string): Promise<void> {
+    await db.update(pilgrimProfiles)
+      .set({
+        verificationStatus: status,
+        verificationReviewedAt: new Date(),
+        verificationReviewedBy: reviewedBy,
+        verificationReason: reason || null,
+      })
+      .where(eq(pilgrimProfiles.userId, userId));
+  }
+
+  async getPendingVerifications(): Promise<PilgrimProfile[]> {
+    return db.select().from(pilgrimProfiles)
+      .where(eq(pilgrimProfiles.verificationStatus, "pending"))
+      .orderBy(asc(pilgrimProfiles.verificationSubmittedAt));
+  }
+
+  async getAllVerifications(): Promise<PilgrimProfile[]> {
+    return db.select().from(pilgrimProfiles)
+      .where(ne(pilgrimProfiles.verificationStatus, "unverified"))
+      .orderBy(desc(pilgrimProfiles.verificationSubmittedAt));
   }
 }
 

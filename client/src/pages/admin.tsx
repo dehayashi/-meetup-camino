@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { ArrowLeft, Plus, Copy, Shield, Flag, Ban } from "lucide-react";
+import { ArrowLeft, Plus, Copy, Shield, Flag, Ban, ShieldCheck, ShieldAlert, Clock, AlertTriangle, Eye, Check, X } from "lucide-react";
 
 export default function Admin() {
   const { t } = useT();
@@ -40,12 +40,18 @@ export default function Admin() {
             <TabsTrigger value="reports" className="flex-1" data-testid="tab-admin-reports">
               {t("admin_reports")}
             </TabsTrigger>
+            <TabsTrigger value="verifications" className="flex-1" data-testid="tab-admin-verifications">
+              {t("admin_verifications")}
+            </TabsTrigger>
           </TabsList>
           <TabsContent value="invites">
             <InvitesTab />
           </TabsContent>
           <TabsContent value="reports">
             <ReportsTab />
+          </TabsContent>
+          <TabsContent value="verifications">
+            <VerificationsTab />
           </TabsContent>
         </Tabs>
       </main>
@@ -328,6 +334,169 @@ function ReportsTab() {
               {t("admin_suspend_user")}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function VerificationsTab() {
+  const { t } = useT();
+  const { toast } = useToast();
+  const [rejectDialog, setRejectDialog] = useState<{ userId: string; open: boolean }>({ userId: "", open: false });
+  const [rejectReason, setRejectReason] = useState("");
+  const [viewingDoc, setViewingDoc] = useState<{ userId: string; type: string } | null>(null);
+
+  const { data: verifications = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/verifications"],
+  });
+
+  const reviewMutation = useMutation({
+    mutationFn: async ({ userId, status, reason }: { userId: string; status: string; reason?: string }) => {
+      return apiRequest("POST", `/api/admin/verifications/${userId}/review`, { status, reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/verifications"] });
+      setRejectDialog({ userId: "", open: false });
+      setRejectReason("");
+      toast({ title: "OK" });
+    },
+  });
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "pending": return <Badge variant="outline"><Clock className="w-3 h-3 mr-1" />{t("verification_status_pending")}</Badge>;
+      case "verified": return <Badge variant="default"><ShieldCheck className="w-3 h-3 mr-1" />{t("verification_status_verified")}</Badge>;
+      case "rejected": return <Badge variant="destructive"><AlertTriangle className="w-3 h-3 mr-1" />{t("verification_status_rejected")}</Badge>;
+      default: return <Badge variant="secondary">{status}</Badge>;
+    }
+  };
+
+  if (isLoading) return <p className="text-sm text-muted-foreground text-center py-8">{t("loading")}</p>;
+
+  if (verifications.length === 0) {
+    return <p className="text-sm text-muted-foreground text-center py-8" data-testid="text-no-verifications">{t("admin_no_verifications")}</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {verifications.map((v: any) => (
+        <Card key={v.userId} data-testid={`card-verification-${v.userId}`}>
+          <CardContent className="py-3 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap justify-start">
+              <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium">{v.displayName || v.userId?.slice(0, 8)}</span>
+              {getStatusBadge(v.verificationStatus)}
+            </div>
+            {v.verificationSubmittedAt && (
+              <p className="text-xs text-muted-foreground">
+                {t("admin_verification_submitted_at")}: {new Date(v.verificationSubmittedAt).toLocaleDateString()}
+              </p>
+            )}
+            {v.verificationReviewedAt && (
+              <p className="text-xs text-muted-foreground">
+                {t("admin_verification_reviewed_at")}: {new Date(v.verificationReviewedAt).toLocaleDateString()}
+              </p>
+            )}
+            {v.verificationReason && (
+              <p className="text-xs text-muted-foreground border-l-2 border-border pl-2">{v.verificationReason}</p>
+            )}
+            <div className="flex items-center gap-2 flex-wrap justify-start pt-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setViewingDoc({ userId: v.userId, type: "document" })}
+                data-testid={`button-view-document-${v.userId}`}
+              >
+                <Eye className="w-3 h-3 mr-1" />
+                {t("admin_verification_view_document")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setViewingDoc({ userId: v.userId, type: "selfie" })}
+                data-testid={`button-view-selfie-${v.userId}`}
+              >
+                <Eye className="w-3 h-3 mr-1" />
+                {t("admin_verification_view_selfie")}
+              </Button>
+              {v.verificationStatus === "pending" && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => reviewMutation.mutate({ userId: v.userId, status: "verified" })}
+                    disabled={reviewMutation.isPending}
+                    data-testid={`button-approve-${v.userId}`}
+                  >
+                    <Check className="w-3 h-3 mr-1" />
+                    {t("admin_verification_approve")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => setRejectDialog({ userId: v.userId, open: true })}
+                    data-testid={`button-reject-${v.userId}`}
+                  >
+                    <X className="w-3 h-3 mr-1" />
+                    {t("admin_verification_reject")}
+                  </Button>
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+
+      <Dialog open={rejectDialog.open} onOpenChange={() => setRejectDialog({ userId: "", open: false })}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {t("admin_verification_reject")}
+            </DialogTitle>
+            <DialogDescription className="sr-only">{t("admin_verification_reject")}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label>{t("admin_verification_reject_reason")}</Label>
+            <Textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder={t("admin_verification_reject_reason_placeholder")}
+              data-testid="input-reject-reason"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              onClick={() => reviewMutation.mutate({ userId: rejectDialog.userId, status: "rejected", reason: rejectReason })}
+              disabled={!rejectReason.trim() || reviewMutation.isPending}
+              data-testid="button-confirm-reject"
+            >
+              {t("admin_verification_reject")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!viewingDoc} onOpenChange={() => setViewingDoc(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>
+              {viewingDoc?.type === "document" ? t("admin_verification_view_document") : t("admin_verification_view_selfie")}
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              {viewingDoc?.type === "document" ? t("admin_verification_view_document") : t("admin_verification_view_selfie")}
+            </DialogDescription>
+          </DialogHeader>
+          {viewingDoc && (
+            <img
+              src={`/api/admin/verification-document/${viewingDoc.userId}/${viewingDoc.type}`}
+              alt={viewingDoc.type}
+              className="w-full rounded-md"
+              data-testid={`img-verification-${viewingDoc.type}`}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

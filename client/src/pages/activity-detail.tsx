@@ -26,7 +26,7 @@ import {
 import {
   ArrowLeft, MapPin, Calendar, Clock, Users, Send, Star,
   Car, UtensilsCrossed, Mountain, BedDouble, LogOut, UserPlus, Copy, ArrowRight,
-  Trash2, Share2,
+  Trash2, Share2, ShieldAlert, ShieldCheck,
 } from "lucide-react";
 import { SiWhatsapp, SiFacebook, SiX } from "react-icons/si";
 import { CountryFlag } from "@/components/country-flag";
@@ -64,6 +64,12 @@ export default function ActivityDetail() {
     hike: t("type_hike"),
     lodging: t("type_lodging"),
   };
+
+  const { data: myProfile } = useQuery<PilgrimProfile | null>({
+    queryKey: ["/api/profile"],
+  });
+
+  const isVerified = myProfile?.verificationStatus === "verified";
 
   const { data: activity, isLoading } = useQuery<ActivityDetail>({
     queryKey: ["/api/activities", id],
@@ -275,8 +281,24 @@ export default function ActivityDetail() {
             </span>
           </div>
 
-          <div className="mt-4 flex gap-2">
-            {canJoin && (
+          <div className="mt-4 flex gap-2 flex-wrap">
+            {canJoin && !isVerified && myProfile && (
+              <div className="w-full p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800" data-testid="banner-verification-required">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium">{t("verification_required")}</p>
+                    <p className="text-xs text-muted-foreground">{t("verification_required_desc")}</p>
+                    <Link href="/profile">
+                      <Button size="sm" variant="outline" data-testid="button-go-to-verification-join">
+                        {t("verification_go_to_profile")}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+            {canJoin && isVerified && (
               <Button onClick={() => joinMutation.mutate()} disabled={joinMutation.isPending} className="flex-1" data-testid="button-join">
                 <UserPlus className="w-4 h-4 mr-1" />
                 {joinMutation.isPending ? t("activity_joining") : t("activity_join")}

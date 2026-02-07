@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
+import { ObjectStorageService } from "./replit_integrations/object_storage";
 import { seedDatabase } from "./seed";
 import { z } from "zod";
 import { insertPilgrimProfileSchema, insertActivitySchema, insertChatMessageSchema, insertRatingSchema, insertDonationSchema, REPORT_REASONS } from "@shared/schema";
@@ -32,6 +34,13 @@ async function checkMembership(activityId: number, userId: string): Promise<bool
   if (!act) return false;
   if (act.creatorId === userId) return true;
   return storage.isParticipant(activityId, userId);
+}
+
+async function isVerifiedUser(req: any): Promise<boolean> {
+  const userId = req.user?.claims?.sub;
+  if (!userId) return false;
+  const profile = await storage.getProfile(userId);
+  return profile?.verificationStatus === "verified";
 }
 
 async function isAdminUser(req: any): Promise<boolean> {
@@ -151,6 +160,8 @@ export async function registerRoutes(
 
   app.post("/api/activities", isAuthenticated, async (req: any, res) => {
     try {
+      const verified = await isVerifiedUser(req);
+      if (!verified) return res.status(403).json({ message: "Identity verification required" });
       const userId = req.user.claims.sub;
       const parsed = activityBodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid activity data", errors: parsed.error.flatten() });
@@ -164,6 +175,8 @@ export async function registerRoutes(
 
   app.post("/api/activities/:id/join", isAuthenticated, async (req: any, res) => {
     try {
+      const verified = await isVerifiedUser(req);
+      if (!verified) return res.status(403).json({ message: "Identity verification required" });
       const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid activity ID" });
@@ -210,6 +223,8 @@ export async function registerRoutes(
 
   app.post("/api/activities/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
+      const verified = await isVerifiedUser(req);
+      if (!verified) return res.status(403).json({ message: "Identity verification required" });
       const userId = req.user.claims.sub;
       const activityId = parseInt(req.params.id);
       if (isNaN(activityId)) return res.status(400).json({ message: "Invalid activity ID" });
@@ -749,6 +764,156 @@ export async function registerRoutes(
       res.json({ ok: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to unsuspend user" });
+    }
+  });
+
+  registerObjectStorageRoutes(app);
+
+  const objectStorageService = new ObjectStorageService();
+
+  app.post("/api/verification/upload-url", isAuthenticated, async (req: any, res) => {
+    try {
+      const { name, size, contentType, type } = req.body;
+      if (!name || !type) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+      if (!["document", "selfie"].includes(type)) {
+        return res.status(400).json({ message: "Invalid upload type" });
+      }
+      if (!contentType || !contentType.startsWith("image/")) {
+        return res.status(400).json({ message: "Only image files are allowed" });
+      }
+      if (size && size > 10 * 1024 * 1024) {
+        return res.status(400).json({ message: "File too large (max 10MB)" });
+      }
+
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+
+      res.json({ uploadURL, objectPath, metadata: { name, size, contentType } });
+    } catch (error) {
+      console.error("Error generating verification upload URL:", error);
+      res.status(500).json({ message: "Failed to generate upload URL" });
+    }
+  });
+
+  app.post("/api/verification/submit", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { documentPath, selfiePath } = req.body;
+      if (!documentPath || !selfiePath) {
+        return res.status(400).json({ message: "Both document and selfie are required" });
+      }
+
+      const profile = await storage.getProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+
+      if (profile.verificationStatus === "verified") {
+        return res.status(400).json({ message: "Already verified" });
+      }
+
+      try {
+        await objectStorageService.trySetObjectEntityAclPolicy(documentPath, {
+          owner: userId,
+          visibility: "private",
+        });
+        await objectStorageService.trySetObjectEntityAclPolicy(selfiePath, {
+          owner: userId,
+          visibility: "private",
+        });
+      } catch (aclErr) {
+        console.error("ACL set warning:", aclErr);
+      }
+
+      await storage.submitVerification(userId, documentPath, selfiePath);
+      res.json({ ok: true, status: "pending" });
+    } catch (error) {
+      console.error("Error submitting verification:", error);
+      res.status(500).json({ message: "Failed to submit verification" });
+    }
+  });
+
+  app.get("/api/verification/status", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profile = await storage.getProfile(userId);
+      if (!profile) {
+        return res.json({ status: "unverified" });
+      }
+      res.json({
+        status: profile.verificationStatus || "unverified",
+        submittedAt: profile.verificationSubmittedAt,
+        reviewedAt: profile.verificationReviewedAt,
+        reason: profile.verificationReason,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get verification status" });
+    }
+  });
+
+  app.get("/api/admin/verifications", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const verifications = await storage.getAllVerifications();
+      res.json(verifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch verifications" });
+    }
+  });
+
+  app.get("/api/admin/verifications/pending", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const verifications = await storage.getPendingVerifications();
+      res.json(verifications);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch pending verifications" });
+    }
+  });
+
+  app.post("/api/admin/verifications/:userId/review", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const { userId } = req.params;
+      const { status, reason } = req.body;
+      if (!["verified", "rejected"].includes(status)) {
+        return res.status(400).json({ message: "Status must be 'verified' or 'rejected'" });
+      }
+      if (status === "rejected" && !reason) {
+        return res.status(400).json({ message: "Reason required for rejection" });
+      }
+      const reviewedBy = req.user.claims.sub;
+      await storage.reviewVerification(userId, reviewedBy, status, reason);
+      res.json({ ok: true });
+    } catch (error) {
+      console.error("Error reviewing verification:", error);
+      res.status(500).json({ message: "Failed to review verification" });
+    }
+  });
+
+  app.get("/api/admin/verification-document/:userId/:type", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await isAdminUser(req);
+      if (!admin) return res.status(403).json({ message: "Admin access required" });
+      const { userId, type } = req.params;
+      if (!["document", "selfie"].includes(type)) {
+        return res.status(400).json({ message: "Invalid type" });
+      }
+      const profile = await storage.getProfile(userId);
+      if (!profile) return res.status(404).json({ message: "User not found" });
+      const objectPath = type === "document" ? profile.documentUrl : profile.selfieUrl;
+      if (!objectPath) return res.status(404).json({ message: "File not found" });
+
+      const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
+      await objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error("Error serving verification document:", error);
+      res.status(500).json({ message: "Failed to serve document" });
     }
   });
 

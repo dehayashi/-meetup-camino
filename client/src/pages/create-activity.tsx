@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,11 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useLocation } from "wouter";
-import { MapPin, ArrowLeft } from "lucide-react";
+import { MapPin, ArrowLeft, ShieldAlert } from "lucide-react";
 import { Link } from "wouter";
 import { useT } from "@/lib/i18n";
 import { TRANSPORT_CITIES, TRANSPORT_ROUTES, getRouteById } from "@/constants/transport-routes";
+import type { PilgrimProfile } from "@shared/schema";
 
 const cities = [
   "Porto", "Lisboa", "Saint-Jean-Pied-de-Port", "Pamplona", "Estella",
@@ -101,6 +102,12 @@ export default function CreateActivity() {
   const [, setLocation] = useLocation();
   const { t } = useT();
 
+  const { data: profile } = useQuery<PilgrimProfile | null>({
+    queryKey: ["/api/profile"],
+  });
+
+  const isVerified = profile?.verificationStatus === "verified";
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -178,6 +185,39 @@ export default function CreateActivity() {
   });
 
   const transportCityNames = TRANSPORT_CITIES.map((c) => c.name);
+
+  if (profile && !isVerified) {
+    return (
+      <div className="p-4 pb-20 max-w-lg mx-auto space-y-4">
+        <div className="flex items-center gap-2">
+          <Link href="/">
+            <Button variant="ghost" size="icon" data-testid="button-back">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          </Link>
+          <h1 className="font-serif text-xl font-bold" data-testid="text-create-title">{t("create_title")}</h1>
+        </div>
+        <Card className="p-4">
+          <div className="flex items-start gap-3">
+            <ShieldAlert className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <p className="font-medium text-sm">{t("verification_required")}</p>
+              <p className="text-sm text-muted-foreground">{t("verification_required_desc")}</p>
+              {profile?.verificationStatus === "pending" && (
+                <p className="text-sm text-yellow-600 dark:text-yellow-400">{t("verification_pending_banner")}</p>
+              )}
+              <Link href="/profile">
+                <Button size="sm" data-testid="button-go-to-verification">
+                  <ShieldAlert className="w-4 h-4 mr-1" />
+                  {t("verification_go_to_profile")}
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-20 max-w-lg mx-auto space-y-4">

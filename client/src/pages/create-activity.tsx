@@ -186,38 +186,8 @@ export default function CreateActivity() {
 
   const transportCityNames = TRANSPORT_CITIES.map((c) => c.name);
 
-  if (profile && !isVerified) {
-    return (
-      <div className="p-4 pb-20 max-w-lg mx-auto space-y-4">
-        <div className="flex items-center gap-2">
-          <Link href="/">
-            <Button variant="ghost" size="icon" data-testid="button-back">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          </Link>
-          <h1 className="font-serif text-xl font-bold" data-testid="text-create-title">{t("create_title")}</h1>
-        </div>
-        <Card className="p-4">
-          <div className="flex items-start gap-3">
-            <ShieldAlert className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
-            <div className="space-y-2">
-              <p className="font-medium text-sm">{t("verification_required")}</p>
-              <p className="text-sm text-muted-foreground">{t("verification_required_desc")}</p>
-              {profile?.verificationStatus === "pending" && (
-                <p className="text-sm text-yellow-600 dark:text-yellow-400">{t("verification_pending_banner")}</p>
-              )}
-              <Link href="/profile">
-                <Button size="sm" data-testid="button-go-to-verification">
-                  <ShieldAlert className="w-4 h-4 mr-1" />
-                  {t("verification_go_to_profile")}
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  const watchedType = form.watch("type");
+  const needsVerification = ["transport", "lodging"].includes(watchedType) && !isVerified && !!profile;
 
   return (
     <div className="p-4 pb-20 max-w-lg mx-auto space-y-4">
@@ -256,6 +226,27 @@ export default function CreateActivity() {
                 </FormItem>
               )}
             />
+
+            {needsVerification && (
+              <div className="p-3 rounded-md bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800" data-testid="banner-verification-required">
+                <div className="flex items-start gap-2">
+                  <ShieldAlert className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-1.5">
+                    <p className="text-sm font-medium">{t("verification_required_activity")}</p>
+                    <p className="text-xs text-muted-foreground">{t("verification_required_activity_desc")}</p>
+                    {profile?.verificationStatus === "pending" && (
+                      <p className="text-xs text-yellow-600 dark:text-yellow-400">{t("verification_pending_banner")}</p>
+                    )}
+                    <Link href="/profile">
+                      <Button size="sm" variant="outline" data-testid="button-go-to-verification">
+                        <ShieldAlert className="w-4 h-4 mr-1" />
+                        {t("verification_go_to_profile")}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {activityType === "transport" && (
               <>
@@ -440,7 +431,7 @@ export default function CreateActivity() {
             <Button
               type="submit"
               className="w-full"
-              disabled={createMutation.isPending}
+              disabled={createMutation.isPending || needsVerification}
               data-testid="button-submit-activity"
             >
               {createMutation.isPending ? t("create_submitting") : t("create_submit")}

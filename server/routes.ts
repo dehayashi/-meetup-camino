@@ -160,11 +160,14 @@ export async function registerRoutes(
 
   app.post("/api/activities", isAuthenticated, async (req: any, res) => {
     try {
-      const verified = await isVerifiedUser(req);
-      if (!verified) return res.status(403).json({ message: "Identity verification required" });
       const userId = req.user.claims.sub;
       const parsed = activityBodySchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Invalid activity data", errors: parsed.error.flatten() });
+      const requiresVerification = ["transport", "lodging"].includes(parsed.data.type);
+      if (requiresVerification) {
+        const verified = await isVerifiedUser(req);
+        if (!verified) return res.status(403).json({ message: "Identity verification required for transport and lodging activities" });
+      }
       const act = await storage.createActivity({ ...parsed.data, creatorId: userId });
       res.json(act);
     } catch (error) {
@@ -175,8 +178,6 @@ export async function registerRoutes(
 
   app.post("/api/activities/:id/join", isAuthenticated, async (req: any, res) => {
     try {
-      const verified = await isVerifiedUser(req);
-      if (!verified) return res.status(403).json({ message: "Identity verification required" });
       const userId = req.user.claims.sub;
       const id = parseInt(req.params.id);
       if (isNaN(id)) return res.status(400).json({ message: "Invalid activity ID" });

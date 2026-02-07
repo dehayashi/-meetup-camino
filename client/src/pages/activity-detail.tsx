@@ -69,7 +69,7 @@ export default function ActivityDetail() {
     queryKey: ["/api/profile"],
   });
 
-  const isVerified = myProfile?.verificationStatus === "verified";
+  const isVerified = myProfile?.verificationStatus === "verified" || myProfile?.isAdmin === true;
 
   const { data: activity, isLoading } = useQuery<ActivityDetail>({
     queryKey: ["/api/activities", id],

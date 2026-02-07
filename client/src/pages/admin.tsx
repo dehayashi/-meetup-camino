@@ -258,9 +258,9 @@ function ReportsTab() {
             <div className="flex items-center gap-2 flex-wrap justify-start">
               <Flag className="w-3.5 h-3.5 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">{t("admin_report_from")}:</span>
-              <span className="text-xs font-medium">{report.reporterId?.slice(0, 8)}...</span>
+              <span className="text-xs font-medium">{report.reporterName || report.reporterId?.slice(0, 8)}</span>
               <span className="text-xs text-muted-foreground">{t("admin_report_about")}:</span>
-              <span className="text-xs font-medium">{report.reportedId?.slice(0, 8)}...</span>
+              <span className="text-xs font-medium">{report.reportedName || report.reportedId?.slice(0, 8)}</span>
               {getStatusBadge(report.status)}
             </div>
             <p className="text-sm">

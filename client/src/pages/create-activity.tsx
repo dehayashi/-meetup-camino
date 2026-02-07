@@ -106,7 +106,7 @@ export default function CreateActivity() {
     queryKey: ["/api/profile"],
   });
 
-  const isVerified = profile?.verificationStatus === "verified";
+  const isVerified = profile?.verificationStatus === "verified" || profile?.isAdmin === true;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),

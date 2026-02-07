@@ -39,6 +39,7 @@ async function checkMembership(activityId: number, userId: string): Promise<bool
 async function isVerifiedUser(req: any): Promise<boolean> {
   const userId = req.user?.claims?.sub;
   if (!userId) return false;
+  if (await isAdminUser(req)) return true;
   const profile = await storage.getProfile(userId);
   return profile?.verificationStatus === "verified";
 }
